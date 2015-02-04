@@ -33,6 +33,7 @@ function GameEngine() {
 	this.castleHealth = 100;
 	this.entities = [];
 	this.monsterEntities = [];
+	this.messages = [];
     this.showOutlines = false;
     this.ctx = null;
     this.click = null;
@@ -91,6 +92,11 @@ GameEngine.prototype.addMonsterEntity = function (entity) {
     this.monsterEntities.push(entity);
 }
 
+GameEngine.prototype.addMessage = function (entity) {
+    console.log('added message');
+    this.messages.push(entity);
+}
+
 GameEngine.prototype.draw = function () {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.ctx.save();
@@ -99,6 +105,9 @@ GameEngine.prototype.draw = function () {
     }
     for (var i = 0; i < this.monsterEntities.length; i++) {
         this.monsterEntities[i].draw(this.ctx);
+    }
+    for (var i = 0; i < this.messages.length; i++) {
+        this.messages[i].draw(this.ctx);
     }
     this.ctx.restore();
 }
@@ -133,6 +142,22 @@ GameEngine.prototype.update = function () {
     for (var i = this.monsterEntities.length - 1; i >= 0; --i) {
         if (this.monsterEntities[i].removeFromWorld) {
             this.monsterEntities.splice(i, 1);
+        }
+    }
+    
+    var messageCount = this.messages.length;
+
+    for (var i = 0; i < messageCount; i++) {
+        var entity = this.messages[i];
+
+        if (!entity.removeFromWorld) {
+            entity.update();
+        }
+    }
+
+    for (var i = this.messages.length - 1; i >= 0; --i) {
+        if (this.messages[i].removeFromWorld) {
+            this.messages.splice(i, 1);
         }
     }
 }

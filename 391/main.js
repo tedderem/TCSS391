@@ -85,7 +85,7 @@ function Zombie(game, x, y) {
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false);
     this.attacking = false;
     this.radius = 100;
-	this.health = 5;
+	this.health = 0;
 	this.maxHealth = 5;
 	this.coinWorth = 5;
 	this.damage = 1;
@@ -103,20 +103,21 @@ Zombie.prototype.update = function () {
 	//user clicked on the screen
 	if (this.game.click) { 		
 		//calculate the difference in x and y of the click to this entity's x/y
-		var diffx = Math.abs(this.game.click.x - (this.x + (64 * zScale)));
-		var diffy = Math.abs(this.game.click.y - (this.y + (64 * zScale)));
+		var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * zScale)));
+		var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * zScale)));
+		console.log(this.game.click);
 		
 		//see if the difference is within a certain range (30 in this case)
 		//Multiplies by the zScale to ensure it fluctuates with size
 		if (diffx <= (30 * zScale) && diffy <= (30 * zScale) || this.game.click.shiftKey) {
 			//decrement health
-			this.health--;
+			this.health++;
 			//add new message entity to the game
-			if (this.health !== 0)this.game.addEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.x, this.game.click.y));
+			if (this.health !== 0)this.game.addMessage(new Message(this.game, "Health: " + (this.maxHealth - this.health) + "/" + this.maxHealth , this.game.click.layerX, this.game.click.layerY));
 			//zombie is dead
-			if (this.health === 0) {
+			if (this.health === this.maxHealth) {
 				this.game.scoreBoard.updateScore(this.coinWorth);
-				this.game.addEntity(new Message(this.game, "+" + this.coinWorth + " Coins" , this.game.click.x, this.game.click.y));
+				this.game.addMessage(new Message(this.game, "+" + this.coinWorth + " Coins" , this.game.click.layerX, this.game.click.layerY));
 				this.removeFromWorld = true;				
 			}
 		}
