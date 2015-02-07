@@ -52,6 +52,7 @@ Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
 
+
 function Message(game, message, x, y) {
 	this.message = message;
 	this.alpha = 1;
@@ -112,9 +113,9 @@ function Zombie(game, x, y) {
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false);
     this.attacking = false;
     this.radius = 100;
-	this.health = 5;
+	this.health = 0;
 	this.maxHealth = 5;
-	this.coinWorth = 5;
+	this.coinWorth = 10;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -137,16 +138,17 @@ Zombie.prototype.update = function () {
 		//Multiplies by the zScale to ensure it fluctuates with size
 		if (diffx <= (70 * zScale) && diffy <= (70 * zScale) || this.game.click.shiftKey) {
 			//decrement health
-			this.health--;
+			this.health++;
 			//add new message entity to the game
-			if (this.health !== 0)this.game.addMessage(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
+			if (this.maxHealth - this.health !== 0)this.game.addTopEntity(new Message(this.game, "Health: " + (this.maxHealth - this.health) + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
 			//zombie is dead
-			if (this.health === 0) {
-				this.game.scoreBoard.updateScore(this.coinWorth);
-				this.game.addMessage(new Message(this.game, "+" + this.coinWorth + " Coins" , this.game.click.layerX - 30, this.game.click.layerY - 25));
-				this.removeFromWorld = true;				
-			}
 		}
+	}
+
+	if (this.maxHealth - this.health <= 0) {
+	    this.game.scoreBoard.updateScore(this.coinWorth);
+	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x - (this.animation.frameWidth * zScale / 2), this.y - (this.animation.frameWidth * zScale / 2)));
+	    this.removeFromWorld = true;
 	}
 	
 	//if/else to manage attack animation reset and movement of zombie
@@ -172,36 +174,9 @@ Zombie.prototype.draw = function (ctx) {
     if (this.attacking) {
         this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
     } else {
-        //this.game.ctx.save();
-        //this.game.ctx.translate(64, 64);
-        //this.game.ctx.rotate(180 * (Math.PI / 180));
-        //this.game.ctx.translate(0, 0);
-        //this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
-        //this.game.ctx.restore();
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
     }
 	
-    Entity.prototype.draw.call(this);
-}
-
-function Blob(game, x, y) {
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/blob.png"), 0, 0, 94, 93, 0.05, 210, true, false);
-    this.radius = 100;
-    this.x = x;
-    this.y = y;
-    Entity.call(this, game, this.x, this.y);
-}
-
-Blob.prototype = new Entity();
-Blob.prototype.constructor = Blob;
-
-Blob.prototype.update = function () {
-    
-    Entity.prototype.update.call(this);
-}
-
-Blob.prototype.draw = function (ctx) {
-    this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
     Entity.prototype.draw.call(this);
 }
 
@@ -229,27 +204,13 @@ ScoreBoard.prototype.draw = function () {
 	
 }
 
-function Background(game) {
-    this.image = new Image();
-
-    this.image.src = "./img/background.gif";
-    Entity.call(this, game, 0, 0);
-}
-
-Background.prototype = new Entity();
-Background.prototype.constructor = Background;
-
-Background.prototype.draw = function () {
-    this.game.ctx.drawImage(this.image, -10, -50, this.game.ctx.canvas.width + 50, this.game.ctx.canvas.height + 250);
-}
-
 function Castle(game) {
-    this.image = new Image();
+    //this.image = new Image();
     this.health = 100;
     this.timeBetweenAttack = 60;
     this.scale = 1.25;
 
-    this.image.src = "./img/castle.png";
+    this.image = ASSET_MANAGER.getAsset("./img/castle.png");
     Entity.call(this, game, 0, 0);
 }
 
@@ -276,6 +237,126 @@ Castle.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, xLoc, yLoc, this.image.width * this.scale, this.image.height * this.scale);
 }
 
+function Tower(game) {  
+    this.scale = 1;
+    this.placed = false;
+    this.showRange = true;
+    this.range = 300;
+    this.damage = 1;
+    this.attackTimer = 180;
+
+    this.image = ASSET_MANAGER.getAsset("./img/tower.png");
+    Entity.call(this, game, 0, 0);
+}
+
+Tower.prototype = new Entity();
+Tower.prototype.constructor = Tower;
+
+Tower.prototype.update = function () {
+    if (this.placed) {
+        var length = this.game.monsterEntities.length;
+        var attacked = false;
+        this.attackTimer--;
+
+        for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
+            var dx = this.buildX - this.game.monsterEntities[i].x;
+            var dy = this.buildY - this.game.monsterEntities[i].y;
+
+            var distance = Math.sqrt(dx * dx + dy * dy);
+            //var distance = Math.sqrt(Math.pow(this.buildX - this.game.monsterEntities[i].x, 2) + Math.pow(this.buildY - this.game.monsterEntities[i].y, 2));
+            
+            if (distance <= this.range) {
+                console.log("Tower Attacking at distance: " + distance);
+                attacked = true;
+                this.game.addTopEntity(new TowerAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale));
+                this.game.monsterEntities[i].health -= this.damage;
+            }
+        }
+
+        if (this.attackTimer === 0) this.attackTimer = 120;
+    }
+}
+
+Tower.prototype.draw = function () {
+    if (this.game.mouse && this.game.isBuilding && !this.placed) {
+        this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
+        this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+    }
+    if (this.buildY && this.buildX) {
+        this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
+        if (this.showRange) {
+            this.game.ctx.beginPath();
+            this.game.ctx.save();
+            this.game.ctx.globalAlpha = .5;
+            this.game.ctx.strokeStyle = "red";
+            this.game.ctx.arc(this.buildX + this.image.width / 2, this.buildY + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+            this.game.ctx.stroke();
+            this.game.ctx.closePath();
+            this.game.ctx.restore();
+        }
+    }
+    if (this.game.click && !this.game.mouse) this.placed = true;
+}
+
+function TowerAttack(game, startx, starty, targetx, targety) {
+    this.radius = 3;
+    this.x = startx;
+    this.y = starty;
+    this.targetx = targetx;
+    this.targety = targety;
+    this.speed = 10;
+
+    Entity.call(this, game, this.x, this.y);
+}
+
+TowerAttack.prototype = new Entity();
+TowerAttack.prototype.constructor = TowerAttack;
+
+TowerAttack.prototype.update = function () {
+    var dx = this.targetx - this.x;
+    var dy = this.targety - this.y;
+
+    var distance = Math.sqrt(dx * dx + dy * dy);
+
+    this.x += (dx / distance) * this.speed;
+    this.y += (dy / distance) * this.speed;
+    
+    console.log("position: " + this.x + ", " + this.y);
+    console.log("difference: " + dx + ", " + dy);
+    console.log("distance: " + distance);
+    if (distance < 10) this.removeFromWorld = true;
+}
+
+TowerAttack.prototype.draw = function () {
+    this.game.ctx.beginPath();
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    this.game.ctx.fill();
+    this.game.ctx.closePath();
+}
+
+function Buildings(game) {
+    this.archerIcon = ASSET_MANAGER.getAsset("./img/towerIcon.png");
+    this.archerPrice = 500;
+    Entity.call(this, game, 0, 0);
+}
+
+Buildings.prototype = new Entity();
+Buildings.prototype.constructor = Buildings;
+
+Buildings.prototype.draw = function () {
+    if (this.game.scoreBoard.score >= this.archerPrice) {
+        this.game.ctx.drawImage(this.archerIcon, this.game.ctx.canvas.width - this.archerIcon.width - 10, 5, this.archerIcon.width, this.archerIcon.height);
+    } else {
+        this.game.ctx.save();
+        this.game.ctx.globalAlpha = .5;
+        this.game.ctx.drawImage(this.archerIcon, this.game.ctx.canvas.width - this.archerIcon.width - 10, 5, this.archerIcon.width, this.archerIcon.height);
+        this.game.ctx.restore();
+    }
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.fillText("Price: " + this.archerPrice, this.game.ctx.canvas.width - this.archerIcon.width - 5, this.archerIcon.height + 20);
+}
+
 
 // the "main" code begins here
 
@@ -285,6 +366,8 @@ ASSET_MANAGER.queueDownload("./img/zombie.png");
 ASSET_MANAGER.queueDownload("./img/castle.png");
 ASSET_MANAGER.queueDownload("./img/blob.png");
 ASSET_MANAGER.queueDownload("./img/clickExplode.png");
+ASSET_MANAGER.queueDownload("./img/tower.png");
+ASSET_MANAGER.queueDownload("./img/towerIcon.png");
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("Starting Zombie Test Simulator");
@@ -298,6 +381,10 @@ ASSET_MANAGER.downloadAll(function () {
    
     gameEngine.addEntity(scoreBoard);
     gameEngine.addEntity(new Castle(gameEngine));
+
+    var buildings = new Buildings(gameEngine);
+    gameEngine.addTopEntity(buildings);
+    gameEngine.addBuildings(buildings);
     
 	gameEngine.init(ctx);
     gameEngine.start();

@@ -30,10 +30,11 @@ Timer.prototype.tick = function () {
 
 function GameEngine() {
     this.round = 0;
-	this.castleHealth = 100;
+    this.castleHealth = 100;
+    this.isBuilding = false;
 	this.entities = [];
 	this.monsterEntities = [];
-	this.messages = [];
+	this.topEntities = [];
     this.showOutlines = false;
     this.ctx = null;
     this.click = null;
@@ -45,6 +46,10 @@ function GameEngine() {
 
 GameEngine.prototype.addScoreBoard = function (scoreboard) {
     this.scoreBoard = scoreboard;
+}
+
+GameEngine.prototype.addBuildings = function (buildings) {
+    this.buildings = buildings;
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -65,9 +70,9 @@ GameEngine.prototype.start = function () {
     })();
 }
 
-GameEngine.prototype.addMessage = function (entity) {
+GameEngine.prototype.addTopEntity = function (entity) {
     console.log('added message');
-    this.messages.push(entity);
+    this.topEntities.push(entity);
 }
 
 GameEngine.prototype.addEntity = function (entity) {
@@ -85,9 +90,31 @@ GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
 
+    var checkBuild = function (e) {
+        var build = false;
+        if (e.layerX > that.ctx.canvas.width - that.buildings.archerIcon.width && e.layerY < 120 && that.scoreBoard.score >= 500) {
+            build = true;
+            that.isBuilding = true;
+            that.addTopEntity(new Tower(that));
+        }
+
+        return build;
+    }
+
+    this.ctx.canvas.addEventListener("mousemove", function (e) {
+        if (that.isBuilding) that.mouse = e;
+    }, false);
+
     this.ctx.canvas.addEventListener("click", function (e) {
         that.click = e;
-		that.addMessage(new clickExplode(that));
+        if (!that.isBuilding) {
+            if (!checkBuild(e)) that.addTopEntity(new clickExplode(that));
+        } else {
+            that.scoreBoard.updateScore(-500);
+            that.isBuilding = false;
+            that.mouse = null;
+        }
+            
         e.preventDefault();
     }, false);
 	
@@ -104,8 +131,8 @@ GameEngine.prototype.draw = function () {
     for (var i = 0; i < this.monsterEntities.length; i++) {
         this.monsterEntities[i].draw(this.ctx);
     }
-    for (var i = 0; i < this.messages.length; i++) {
-        this.messages[i].draw(this.ctx);
+    for (var i = 0; i < this.topEntities.length; i++) {
+        this.topEntities[i].draw(this.ctx);
     }
     this.ctx.restore();
 }
@@ -142,19 +169,19 @@ GameEngine.prototype.update = function () {
             this.monsterEntities.splice(i, 1);
         }
     }
-    var messageCount = this.messages.length;
+    var messageCount = this.topEntities.length;
 
     for (var i = 0; i < messageCount; i++) {
-        var entity = this.messages[i];
+        var entity = this.topEntities[i];
 
         if (!entity.removeFromWorld) {
             entity.update();
         }
     }
 
-    for (var i = this.messages.length - 1; i >= 0; --i) {
-        if (this.messages[i].removeFromWorld) {
-            this.messages.splice(i, 1);
+    for (var i = this.topEntities.length - 1; i >= 0; --i) {
+        if (this.topEntities[i].removeFromWorld) {
+            this.topEntities.splice(i, 1);
         }
     }
 }
@@ -182,7 +209,8 @@ GameEngine.prototype.loop = function () {
     this.draw();
 	this.populate();
 	this.ctx.restore();
-    this.click = null;
+	this.click = null;
+	this.mouse = null;
 }
 
 function Entity(game, x, y) {
