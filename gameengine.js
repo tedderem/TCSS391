@@ -190,9 +190,9 @@ GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
 	if (entitiesCount === 0 && this.castleHealth !== 0) {
 	    this.round++;
-		for (var i = 0; i < this.round * this.round; i++) {
+		for (var i = 0; i < this.round * 3 + 3; i++) {
 			var startx = 300 + Math.random() * (120);
-			var starty = 600 + Math.random() * 600;
+			var starty = 800 + Math.random() * 200;
 			this.addMonsterEntity(new Zombie(this, startx, starty));
 		}
 	}

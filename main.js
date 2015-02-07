@@ -113,9 +113,9 @@ function Zombie(game, x, y) {
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false);
     this.attacking = false;
     this.radius = 100;
-	this.health = 0;
 	this.maxHealth = 5;
-	this.coinWorth = 10;
+	this.health = this.maxHealth;
+	this.coinWorth = 20;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -138,16 +138,16 @@ Zombie.prototype.update = function () {
 		//Multiplies by the zScale to ensure it fluctuates with size
 		if (diffx <= (70 * zScale) && diffy <= (70 * zScale) || this.game.click.shiftKey) {
 			//decrement health
-			this.health++;
+			this.health--;
 			//add new message entity to the game
-			if (this.maxHealth - this.health !== 0)this.game.addTopEntity(new Message(this.game, "Health: " + (this.maxHealth - this.health) + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
+			if (this.health > 0)this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
 			//zombie is dead
 		}
 	}
 
-	if (this.maxHealth - this.health <= 0) {
+	if (this.health <= 0) {
 	    this.game.scoreBoard.updateScore(this.coinWorth);
-	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x - (this.animation.frameWidth * zScale / 2), this.y - (this.animation.frameWidth * zScale / 2)));
+	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2)));
 	    this.removeFromWorld = true;
 	}
 	
