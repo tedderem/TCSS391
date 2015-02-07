@@ -65,21 +65,9 @@ GameEngine.prototype.start = function () {
     })();
 }
 
-GameEngine.prototype.startInput = function () {
-    console.log('Starting input');
-    var that = this;
-
-    this.ctx.canvas.addEventListener("click", function (e) {
-        that.click = e;
-        e.preventDefault();
-    }, false);
-	
-	this.ctx.canvas.addEventListener("keypress", function (e) {
-        if (String.fromCharCode(e.which) === ' ') that.space = true;
-        e.preventDefault();
-    }, false);
-
-    console.log('Input started');
+GameEngine.prototype.addMessage = function (entity) {
+    console.log('added message');
+    this.messages.push(entity);
 }
 
 GameEngine.prototype.addEntity = function (entity) {
@@ -92,10 +80,20 @@ GameEngine.prototype.addMonsterEntity = function (entity) {
     this.monsterEntities.push(entity);
 }
 
-GameEngine.prototype.addMessage = function (entity) {
-    console.log('added message');
-    this.messages.push(entity);
+
+GameEngine.prototype.startInput = function () {
+    console.log('Starting input');
+    var that = this;
+
+    this.ctx.canvas.addEventListener("click", function (e) {
+        that.click = e;
+		that.addMessage(new clickExplode(that));
+        e.preventDefault();
+    }, false);
+	
+    console.log('Input started');
 }
+
 
 GameEngine.prototype.draw = function () {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -144,7 +142,6 @@ GameEngine.prototype.update = function () {
             this.monsterEntities.splice(i, 1);
         }
     }
-    
     var messageCount = this.messages.length;
 
     for (var i = 0; i < messageCount; i++) {
@@ -164,24 +161,19 @@ GameEngine.prototype.update = function () {
 
 GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
-	if (entitiesCount === 0) {
+	if (entitiesCount === 0 && this.castleHealth !== 0) {
 	    this.round++;
 		for (var i = 0; i < this.round * this.round; i++) {
 			var startx = 300 + Math.random() * (120);
-		    //var starty = Math.random() * this.ctx.canvas.height;
 			var starty = 600 + Math.random() * 600;
 			this.addMonsterEntity(new Zombie(this, startx, starty));
 		}
-		//for (var i = 0; i < 10; i++) {
-		//    var startx = Math.random() * (this.ctx.canvas.width - 64);
-		//    var starty = Math.random() * this.ctx.canvas.height;
-		//    this.addMonsterEntity(new Blob(this, startx, starty));
-		//}
 	}
 
 	
     
 }
+
 
 GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
@@ -191,7 +183,6 @@ GameEngine.prototype.loop = function () {
 	this.populate();
 	this.ctx.restore();
     this.click = null;
-	this.space = null;
 }
 
 function Entity(game, x, y) {

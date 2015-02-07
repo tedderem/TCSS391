@@ -78,6 +78,33 @@ Message.prototype.draw = function () {
 	this.game.ctx.restore();
 }
 
+function clickExplode(game) {
+	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/clickExplode.png"), 0, 0, 66.7, 66.7, 0.03, 32, false, false);
+	this.game = game;
+	this.x = -200;
+	this.y = -200;
+    Entity.call(this, game, this.x, this.y);
+}
+
+clickExplode.prototype = new Entity();
+clickExplode.prototype.constructor = clickExplode;
+
+clickExplode.prototype.draw = function(ctx) {
+	this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, .9);
+    Entity.prototype.draw.call(this);
+}
+
+clickExplode.prototype.update = function() {
+	if(this.game.click != null) {
+		this.x = this.game.click.layerX - this.animation.frameWidth*.9/2;
+		this.y = this.game.click.layerY - this.animation.frameHeight*.9/2;
+		Entity.prototype.update.call(this);
+	}
+	if(this.animation.isDone()) this.removeFromWorld = true;
+}
+
+
+
 var zScale = .4;
 
 function Zombie(game, x, y) {
@@ -85,7 +112,7 @@ function Zombie(game, x, y) {
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false);
     this.attacking = false;
     this.radius = 100;
-	this.health = 0;
+	this.health = 5;
 	this.maxHealth = 5;
 	this.coinWorth = 5;
 	this.damage = 1;
@@ -105,19 +132,18 @@ Zombie.prototype.update = function () {
 		//calculate the difference in x and y of the click to this entity's x/y
 		var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * zScale)));
 		var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * zScale)));
-		console.log(this.game.click);
 		
 		//see if the difference is within a certain range (30 in this case)
 		//Multiplies by the zScale to ensure it fluctuates with size
-		if (diffx <= (30 * zScale) && diffy <= (30 * zScale) || this.game.click.shiftKey) {
+		if (diffx <= (70 * zScale) && diffy <= (70 * zScale) || this.game.click.shiftKey) {
 			//decrement health
-			this.health++;
+			this.health--;
 			//add new message entity to the game
-			if (this.maxHealth - this.health !== 0)this.game.addMessage(new Message(this.game, "Health: " + (this.maxHealth - this.health) + "/" + this.maxHealth , this.game.click.layerX, this.game.click.layerY));
+			if (this.health !== 0)this.game.addMessage(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
 			//zombie is dead
-			if (this.maxHealth - this.health === 0) {
+			if (this.health === 0) {
 				this.game.scoreBoard.updateScore(this.coinWorth);
-				this.game.addMessage(new Message(this.game, "+" + this.coinWorth + " Coins" , this.game.click.layerX, this.game.click.layerY));
+				this.game.addMessage(new Message(this.game, "+" + this.coinWorth + " Coins" , this.game.click.layerX - 30, this.game.click.layerY - 25));
 				this.removeFromWorld = true;				
 			}
 		}
@@ -256,10 +282,9 @@ Castle.prototype.draw = function () {
 var ASSET_MANAGER = new AssetManager();
 
 ASSET_MANAGER.queueDownload("./img/zombie.png");
-ASSET_MANAGER.queueDownload("./img/background.gif");
 ASSET_MANAGER.queueDownload("./img/castle.png");
 ASSET_MANAGER.queueDownload("./img/blob.png");
-
+ASSET_MANAGER.queueDownload("./img/clickExplode.png");
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("Starting Zombie Test Simulator");
@@ -271,7 +296,6 @@ ASSET_MANAGER.downloadAll(function () {
     var scoreBoard = new ScoreBoard(gameEngine);
     gameEngine.addScoreBoard(scoreBoard);
    
-    gameEngine.addEntity(new Background(gameEngine));
     gameEngine.addEntity(scoreBoard);
     gameEngine.addEntity(new Castle(gameEngine));
     
