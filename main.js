@@ -115,6 +115,7 @@ function Zombie(game, x, y) {
     this.radius = 100;
 	this.maxHealth = 5;
 	this.health = this.maxHealth;
+	this.attackTimer = 90;
 	this.coinWorth = 20;
 	this.damage = 1;
 	this.x = x;
@@ -153,11 +154,15 @@ Zombie.prototype.update = function () {
 	
 	//if/else to manage attack animation reset and movement of zombie
     if (this.attacking) {
+		this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
             this.attackingAnimation.elapsedTime = 0;
             this.animation.elapsedTime = 0;
-            this.attacking = false;
         }
+		if (this.attackTimer === 0) {
+			this.game.castleHealth -= this.damage;
+			this.attackTimer = 90;
+		}
     } else {
         if (this.y > 450) {
             this.y -= (.5 * zScale);
@@ -205,9 +210,6 @@ ScoreBoard.prototype.draw = function () {
 }
 
 function Castle(game) {
-    //this.image = new Image();
-    this.health = 100;
-    this.timeBetweenAttack = 60;
     this.scale = 1.25;
 
     this.image = ASSET_MANAGER.getAsset("./img/castle.png");
@@ -216,20 +218,6 @@ function Castle(game) {
 
 Castle.prototype = new Entity();
 Castle.prototype.constructor = Castle;
-
-Castle.prototype.update = function () {
-    var length = this.game.monsterEntities.length;
-    this.timeBetweenAttack--;
-
-    for (var i = 0; i < length && this.timeBetweenAttack === 0; i++) {
-        if (this.game.monsterEntities[i].attacking) {
-            this.health -= this.game.monsterEntities[i].damage;
-        }
-    }
-    if (this.timeBetweenAttack === 0) this.timeBetweenAttack = 60;
-
-    this.game.castleHealth = this.health;
-}
 
 Castle.prototype.draw = function () {
     var xLoc = (this.game.ctx.canvas.width / 2) - (this.image.width * this.scale / 2);
@@ -391,5 +379,4 @@ ASSET_MANAGER.downloadAll(function () {
 		
     
 });
-
 
