@@ -61,7 +61,7 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
 		this.cache.push(offscreenCanvas);
 		times++;
 	}
-	console.log(times);
+	//console.log(times);
 }
 
 Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
@@ -243,7 +243,7 @@ Zombie.prototype.update = function () {
 		this.y += this.unitY * this.speed;
 		this.x += this.unitX * this.speed;
 		this.toCollide--;
-		console.log(this.x + " " + this.y);
+		//console.log(this.x + " " + this.y);
         } else {
             this.attacking = true;
         }
@@ -332,7 +332,7 @@ Tower.prototype.update = function () {
             //var distance = Math.sqrt(Math.pow(this.buildX - this.game.monsterEntities[i].x, 2) + Math.pow(this.buildY - this.game.monsterEntities[i].y, 2));
             
             if (distance <= this.range) {
-                console.log("Tower Attacking at distance: " + distance);
+                //console.log("Tower Attacking at distance: " + distance);
                 attacked = true;
                 this.game.addTopEntity(new TowerAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale));
                 this.game.monsterEntities[i].health -= this.damage;
@@ -387,9 +387,9 @@ TowerAttack.prototype.update = function () {
     this.x += (dx / distance) * this.speed;
     this.y += (dy / distance) * this.speed;
     
-    console.log("position: " + this.x + ", " + this.y);
-    console.log("difference: " + dx + ", " + dy);
-    console.log("distance: " + distance);
+    //console.log("position: " + this.x + ", " + this.y);
+    //console.log("difference: " + dx + ", " + dy);
+    //console.log("distance: " + distance);
     if (distance < 10) this.removeFromWorld = true;
 }
 
