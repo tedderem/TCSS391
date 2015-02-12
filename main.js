@@ -1,4 +1,4 @@
-function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse) {
+function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, angle) {
     this.spriteSheet = spriteSheet;
     this.startX = startX;
     this.startY = startY;
@@ -10,6 +10,58 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
     this.elapsedTime = 0;
     this.loop = loop;
     this.reverse = reverse;
+	this.angle = angle;
+
+	this.cache = [];
+	var times = 0;
+//generate cache of rotated sprites
+	for (var i = 0; i < this.frames; i++) {
+		var scaleBy = scaleBy || 1;
+
+		index = i;
+		//times++;
+		var vindex = 0;
+		if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
+			index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
+        		vindex++;
+    		}
+    		while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
+        		index -= Math.floor(this.spriteSheet.width / this.frameWidth);
+        		vindex++;
+    		}
+
+		
+		var offscreenCanvas = document.createElement('canvas');
+		
+		var size = Math.max(this.frameWidth * scaleBy, this.frameHeight * scaleBy);
+		offscreenCanvas.width = size;
+		offscreenCanvas.height = size;
+		var offscreenCtx = offscreenCanvas.getContext('2d');
+		offscreenCtx.save();
+		
+		offscreenCtx.translate(size / 2, size / 2);
+
+		
+
+		offscreenCtx.rotate(this.angle);
+		offscreenCtx.translate(0, 0);
+		//offscreenCtx.drawImage(image, -(image.width / 2), -(image.height / 2));
+		var offset = vindex === 0 ? this.startX : 0;
+		/*offscreenCtx.drawImage(this.spriteSheet, index * this.frameWidth + offset, vindex * this.frameHeight + this.startY, this.frameWidth, this,frameHeight, -(this.frameWidth / 2), -(this.frameWidth / 2), 100, 100);*/
+		offscreenCtx.drawImage(this.spriteSheet, index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
+                  this.frameWidth, this.frameHeight,
+                  -(this.frameWidth / 2), -(this.frameWidth / 2),
+                  this.frameWidth * scaleBy,
+                  this.frameHeight * scaleBy);
+
+		offscreenCtx.restore();
+		//offscreenCtx.strokeStyle = "red";
+		//offscreenCtx.strokeRect(0,0,size,size);
+		//this.cache[i] = offscreenCanvas;
+		this.cache.push(offscreenCanvas);
+		times++;
+	}
+	console.log(times);
 }
 
 Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
@@ -36,12 +88,16 @@ Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     var locX = x;
     var locY = y;
     var offset = vindex === 0 ? this.startX : 0;
-    ctx.drawImage(this.spriteSheet,
+    /*ctx.drawImage(this.spriteSheet,
                   index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
                   this.frameWidth, this.frameHeight,
                   locX, locY,
                   this.frameWidth * scaleBy,
-                  this.frameHeight * scaleBy);
+                  this.frameHeight * scaleBy);*/
+
+	/*ctx.drawImage(this.cache[this.currentFrame()], locX - (this.frameWidth/2)*scaleBy, locY - (this.frameHeight/2)*scaleBy);*/
+	ctx.drawImage(this.cache[this.currentFrame()], 0, 0, this.frameHeight, this.frameWidth, locX /*- (this.frameHeight/2)*scaleBy*/, locY /*- (this.frameHeight/2)*scaleBy*/, this.frameWidth*scaleBy, this.frameHeight*scaleBy);
+	//console.log(this.currentFrame());
 }
 
 Animation.prototype.currentFrame = function () {
@@ -109,8 +165,7 @@ clickExplode.prototype.update = function() {
 var zScale = .4;
 
 function Zombie(game, x, y) {
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false);
-    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false);
+    
     this.attacking = false;
     this.radius = 100;
 	this.maxHealth = 5;
@@ -120,6 +175,25 @@ function Zombie(game, x, y) {
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
+	this.targetX = 350;
+	this.targetY = 400;
+	//calculate angle to target, 400,400 to center for now
+	var difX = this.targetX - this.x; // x,y of vector to center
+	var difY = this.targetY - this.y;
+	var magnitude = Math.sqrt(difX*difX+difY*difY);
+	this.angle = 4/2 * Math.PI - Math.atan(difX/ difY);
+	if (this.y < this.targetY) {
+		this.angle += Math.PI;
+	}
+	this.unitX = difX/magnitude; //x,y of unit vector to center
+	this.unitY = difY/magnitude;
+	this.speed = .2; //speed to modify unit vector
+	this.toCollide = (magnitude - 50) / .2;//steps to hit castle
+
+	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle);
+
+
     Entity.call(this, game, this.x, this.y);
 }
 
@@ -164,12 +238,16 @@ Zombie.prototype.update = function () {
 			this.attackTimer = 90;
 		}
     } else {
-        if (this.y > 450) {
-            this.y -= (.5 * zScale);
+        if (this.toCollide > 0) {
+            //this.y -= (.5 * zScale);
+		this.y += this.unitY * this.speed;
+		this.x += this.unitX * this.speed;
+		this.toCollide--;
+		console.log(this.x + " " + this.y);
         } else {
             this.attacking = true;
         }
-		if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);
+		/*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
 	}
 	
     Entity.prototype.update.call(this);
