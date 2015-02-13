@@ -13,7 +13,7 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
 	this.angle = angle;
 
 	this.cache = [];
-	var times = 0;
+	//var times = 0;
 //generate cache of rotated sprites
 	for (var i = 0; i < this.frames; i++) {
 		var scaleBy = scaleBy || 1;
@@ -59,7 +59,7 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
 		//offscreenCtx.strokeRect(0,0,size,size);
 		//this.cache[i] = offscreenCanvas;
 		this.cache.push(offscreenCanvas);
-		times++;
+		//times++;
 	}
 	//console.log(times);
 }
@@ -175,7 +175,7 @@ function Zombie(game, x, y) {
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
-	this.targetX = 350;
+	this.targetX = 400;
 	this.targetY = 400;
 	//calculate angle to target, 400,400 to center for now
 	var difX = this.targetX - this.x; // x,y of vector to center
@@ -201,8 +201,6 @@ Zombie.prototype = new Entity();
 Zombie.prototype.constructor = Zombie;
 
 Zombie.prototype.update = function () {
-    if (this.game.space) this.attacking = true;
-	
 	//user clicked on the screen
 	if (this.game.click) { 		
 		//calculate the difference in x and y of the click to this entity's x/y
@@ -263,6 +261,107 @@ Zombie.prototype.draw = function (ctx) {
     Entity.prototype.draw.call(this);
 }
 
+function Archer(game, x, y) {
+    this.scale = .5;
+    this.attacking = false;
+    this.radius = 100;
+    this.maxHealth = 5;
+    this.health = this.maxHealth;
+    this.attackTimer = 60;
+    this.coinWorth = 40;
+    //this.damage = 2;
+    this.x = x;
+    this.y = y;
+    this.targetX = 400;
+    this.targetY = 400;
+    this.range = 1500;
+    //calculate angle to target, 400,400 to center for now
+    var difX = this.targetX - this.x; // x,y of vector to center
+    var difY = this.targetY - this.y;
+    var magnitude = Math.sqrt(difX * difX + difY * difY);
+    this.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
+    if (this.y < this.targetY) {
+        this.angle += Math.PI;
+    }
+    this.angle += Math.PI/2;
+    this.unitX = difX / magnitude; //x,y of unit vector to center
+    this.unitY = difY / magnitude;
+    this.speed = .25; //speed to modify unit vector
+    this.toCollide = (magnitude - 50) / .2;//steps to hit castle
+
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 128, 128, 0.05, 18, true, false, this.angle);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/archerattack.png"), 0, 0, 128, 128, 0.1, 20, true, false, this.angle);
+
+
+    Entity.call(this, game, this.x, this.y);
+}
+
+Archer.prototype = new Entity();
+Archer.prototype.constructor = Archer;
+
+Archer.prototype.update = function () {
+   //user clicked on the screen
+    if (this.game.click) {
+        //calculate the difference in x and y of the click to this entity's x/y
+        var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
+        var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
+
+        //see if the difference is within a certain range (30 in this case)
+        //Multiplies by the zScale to ensure it fluctuates with size
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
+            //decrement health
+            this.health--;
+            //add new message entity to the game
+            if (this.health > 0) this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25));
+            //zombie is dead
+        }
+    }
+
+    if (this.health <= 0) {
+        this.game.scoreBoard.updateScore(this.coinWorth);
+        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2)));
+        this.removeFromWorld = true;
+    }
+
+    //if/else to manage attack animation reset and movement of zombie
+    if (this.attacking) {
+        this.attackTimer--;
+        if (this.attackingAnimation.isDone()) {
+            this.attackingAnimation.elapsedTime = 0;
+            this.animation.elapsedTime = 0;
+        }
+        if (this.attackTimer === 0) {
+            this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth / 2), this.y + (this.attackingAnimation.frameHeight / 4), 400, 400));
+            //this.game.castleHealth -= this.damage;
+            this.attackTimer = 60;
+        }
+    } else {
+        if (this.toCollide > this.range) {
+            //this.y -= (.5 * zScale);
+            this.y += this.unitY * this.speed;
+            this.x += this.unitX * this.speed;
+            this.toCollide--;
+            //console.log(this.x + " " + this.y);
+        } else {
+            this.attacking = true;
+        }
+        /*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
+    }
+
+    Entity.prototype.update.call(this);
+}
+
+Archer.prototype.draw = function (ctx) {
+    if (this.attacking) {
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+    } else {
+        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+    }
+
+    Entity.prototype.draw.call(this);
+}
+
+
 function ScoreBoard(game) {
 	this.score = 0;
 	
@@ -308,7 +407,7 @@ function Tower(game) {
     this.placed = false;
     this.showRange = true;
     this.range = 300;
-    this.damage = 1;
+    //this.damage = 1;
     this.attackTimer = 180;
 
     this.image = ASSET_MANAGER.getAsset("./img/tower.png");
@@ -325,8 +424,8 @@ Tower.prototype.update = function () {
         this.attackTimer--;
 
         for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
-            var dx = this.buildX - this.game.monsterEntities[i].x;
-            var dy = this.buildY - this.game.monsterEntities[i].y;
+            var dx = this.buildX + (this.image.width * this.scale / 2) - this.game.monsterEntities[i].x;
+            var dy = this.buildY + (this.image.height * this.scale / 2) - this.game.monsterEntities[i].y;
 
             var distance = Math.sqrt(dx * dx + dy * dy);
             //var distance = Math.sqrt(Math.pow(this.buildX - this.game.monsterEntities[i].x, 2) + Math.pow(this.buildY - this.game.monsterEntities[i].y, 2));
@@ -334,8 +433,8 @@ Tower.prototype.update = function () {
             if (distance <= this.range) {
                 //console.log("Tower Attacking at distance: " + distance);
                 attacked = true;
-                this.game.addTopEntity(new TowerAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale));
-                this.game.monsterEntities[i].health -= this.damage;
+                this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale, this.game.monsterEntities[i]));
+                //this.game.monsterEntities[i].health -= this.damage;
             }
         }
 
@@ -364,21 +463,26 @@ Tower.prototype.draw = function () {
     if (this.game.click && !this.game.mouse) this.placed = true;
 }
 
-function TowerAttack(game, startx, starty, targetx, targety) {
-    this.radius = 3;
+function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
+    
+    //this.radius = 3;
     this.x = startx;
     this.y = starty;
+    this.damage = 1;
+    this.target = enemy;
     this.targetx = targetx;
     this.targety = targety;
     this.speed = 10;
-
+    this.update();
+    this.image = this.rotateAndCache(ASSET_MANAGER.getAsset("./img/arrow.png"), this.angle);
+    //this.image = new Animation(ASSET_MANAGER.getAsset("./img/arrow.png"), 0, 0, this.image.frameWidth, this.image.frameHeight, 0.025, 1, false, false, this.angle);
     Entity.call(this, game, this.x, this.y);
 }
 
-TowerAttack.prototype = new Entity();
-TowerAttack.prototype.constructor = TowerAttack;
+ArrowAttack.prototype = new Entity();
+ArrowAttack.prototype.constructor = ArrowAttack;
 
-TowerAttack.prototype.update = function () {
+ArrowAttack.prototype.update = function () {
     var dx = this.targetx - this.x;
     var dy = this.targety - this.y;
 
@@ -386,19 +490,30 @@ TowerAttack.prototype.update = function () {
 
     this.x += (dx / distance) * this.speed;
     this.y += (dy / distance) * this.speed;
+
+    this.angle = -Math.atan2(dx, dy) + Math.PI;
     
     //console.log("position: " + this.x + ", " + this.y);
     //console.log("difference: " + dx + ", " + dy);
     //console.log("distance: " + distance);
-    if (distance < 10) this.removeFromWorld = true;
+    if (distance < 10) {
+        if (this.target) {
+            this.target.health -= this.damage;
+        } else {
+            this.game.castleHealth -= this.damage;
+        }
+        this.removeFromWorld = true;
+    }
 }
 
-TowerAttack.prototype.draw = function () {
-    this.game.ctx.beginPath();
-    this.game.ctx.fillStyle = "black";
-    this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    this.game.ctx.fill();
-    this.game.ctx.closePath();
+ArrowAttack.prototype.draw = function () {
+    //this.game.ctx.beginPath();
+    //this.game.ctx.fillStyle = "black";
+    //this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    //this.game.ctx.fill();
+    //this.game.ctx.closePath();
+    //this.image.drawFrame(this.game.clockTick, this.game.ctx, this.x, this.y, this.scale);
+    this.game.ctx.drawImage(this.image, this.x - (this.image.width / 2), this.y - (this.image.width / 4), this.image.width, this.image.height);
 }
 
 function Buildings(game) {
@@ -430,10 +545,14 @@ var ASSET_MANAGER = new AssetManager();
 
 ASSET_MANAGER.queueDownload("./img/zombie.png");
 ASSET_MANAGER.queueDownload("./img/castle.png");
-ASSET_MANAGER.queueDownload("./img/blob.png");
 ASSET_MANAGER.queueDownload("./img/clickExplode.png");
 ASSET_MANAGER.queueDownload("./img/tower.png");
 ASSET_MANAGER.queueDownload("./img/towerIcon.png");
+ASSET_MANAGER.queueDownload("./img/archerwalk.png");
+ASSET_MANAGER.queueDownload("./img/archerattack.png");
+ASSET_MANAGER.queueDownload("./img/arrow.png");
+
+
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("Starting Zombie Test Simulator");

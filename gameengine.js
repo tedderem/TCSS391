@@ -71,17 +71,17 @@ GameEngine.prototype.start = function () {
 }
 
 GameEngine.prototype.addTopEntity = function (entity) {
-    console.log('added message');
+    //console.log('added message');
     this.topEntities.push(entity);
 }
 
 GameEngine.prototype.addEntity = function (entity) {
-    console.log('added entity');
+    //console.log('added entity');
     this.entities.push(entity);
 }
 
 GameEngine.prototype.addMonsterEntity = function (entity) {
-    console.log('added monster entity');
+    //console.log('added monster entity');
     this.monsterEntities.push(entity);
 }
 
@@ -188,7 +188,7 @@ GameEngine.prototype.update = function () {
 
 GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
-	if (entitiesCount === 0 && this.castleHealth !== 0) {
+	if (entitiesCount === 0 && this.castleHealth > 0) {
 	    this.round++;
 		for (var i = 0; i < this.round * 1; i++) {
 			var startx = 0 + Math.random() * (800);
@@ -203,11 +203,10 @@ GameEngine.prototype.populate = function () {
 			startx = 0 + Math.random() * -200;
 			starty = 0 + Math.random() * 800;
 			this.addMonsterEntity(new Zombie(this, startx, starty));
-
-
-
-
-		}
+			startx = 0 + Math.random() * -200;
+			starty = 0 + Math.random() * 800;
+			this.addMonsterEntity(new Archer(this, startx, starty));
+        }
 	}
 
 	
