@@ -202,7 +202,7 @@ Zombie.prototype.constructor = Zombie;
 
 Zombie.prototype.update = function () {
 	//user clicked on the screen
-	if (this.game.click) { 		
+	if (this.game.click && !this.game.gameOver) { 		
 		//calculate the difference in x and y of the click to this entity's x/y
 		var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * zScale)));
 		var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * zScale)));
@@ -301,7 +301,7 @@ Archer.prototype.constructor = Archer;
 
 Archer.prototype.update = function () {
    //user clicked on the screen
-    if (this.game.click) {
+    if (this.game.click && !this.game.gameOver) {
         //calculate the difference in x and y of the click to this entity's x/y
         var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
@@ -331,7 +331,7 @@ Archer.prototype.update = function () {
             this.animation.elapsedTime = 0;
         }
         if (this.attackTimer === 0) {
-            this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth / 2), this.y + (this.attackingAnimation.frameHeight / 4), 400, 400));
+            this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth / 2), this.y + (this.attackingAnimation.frameHeight / 6), 400, 400));
             //this.game.castleHealth -= this.damage;
             this.attackTimer = 60;
         }
@@ -418,7 +418,7 @@ Tower.prototype = new Entity();
 Tower.prototype.constructor = Tower;
 
 Tower.prototype.update = function () {
-    if (this.placed) {
+    if (this.placed && !this.game.gameOver) {
         var length = this.game.monsterEntities.length;
         var attacked = false;
         this.attackTimer--;
@@ -555,7 +555,7 @@ ASSET_MANAGER.queueDownload("./img/arrow.png");
 
 
 ASSET_MANAGER.downloadAll(function () {
-    console.log("Starting Zombie Test Simulator");
+    console.log("Starting Prevail");
     var canvas = document.getElementById('gameWorld');
     var ctx = canvas.getContext('2d');
 	

@@ -31,6 +31,7 @@ Timer.prototype.tick = function () {
 function GameEngine() {
     this.round = 0;
     this.castleHealth = 100;
+    this.gameOver = false;
     this.isBuilding = false;
 	this.entities = [];
 	this.monsterEntities = [];
@@ -108,7 +109,7 @@ GameEngine.prototype.startInput = function () {
     this.ctx.canvas.addEventListener("click", function (e) {
         that.click = e;
         if (!that.isBuilding) {
-            if (!checkBuild(e)) that.addTopEntity(new clickExplode(that));
+            if (!checkBuild(e) && !that.gameOver) that.addTopEntity(new clickExplode(that));
         } else {
             that.scoreBoard.updateScore(-500);
             that.isBuilding = false;
@@ -184,11 +185,13 @@ GameEngine.prototype.update = function () {
             this.topEntities.splice(i, 1);
         }
     }
+
+    if (this.castleHealth <= 0) this.gameOver = true;
 }
 
 GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
-	if (entitiesCount === 0 && this.castleHealth > 0) {
+	if (entitiesCount === 0 && !this.gameOver) {
 	    this.round++;
 		for (var i = 0; i < this.round * 1; i++) {
 			var startx = 0 + Math.random() * (800);
@@ -206,7 +209,11 @@ GameEngine.prototype.populate = function () {
 			startx = 0 + Math.random() * -200;
 			starty = 0 + Math.random() * 800;
 			this.addMonsterEntity(new Archer(this, startx, starty));
-        }
+		} 
+	} else if (this.gameOver) {
+	    this.ctx.font = "bold 60px arial";
+	    this.ctx.fillStyle = "black";
+	    this.ctx.fillText("GAME OVER", 225, 400);
 	}
 
 	
