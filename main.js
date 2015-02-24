@@ -1,4 +1,4 @@
-function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, angle) {
+function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, angle, registry) {
     this.spriteSheet = spriteSheet;
     this.startX = startX;
     this.startY = startY;
@@ -11,57 +11,72 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
     this.loop = loop;
     this.reverse = reverse;
 	this.angle = angle;
-
+	this.registry = registry || 0;
 	this.cache = [];
-	//var times = 0;
-//generate cache of rotated sprites
-	for (var i = 0; i < this.frames; i++) {
-		var scaleBy = scaleBy || 1;
-
-		index = i;
-		//times++;
-		var vindex = 0;
-		if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
-			index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
-        		vindex++;
-    		}
-    		while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
-        		index -= Math.floor(this.spriteSheet.width / this.frameWidth);
-        		vindex++;
-    		}
-
-		
-		var offscreenCanvas = document.createElement('canvas');
-		
-		var size = Math.max(this.frameWidth * scaleBy, this.frameHeight * scaleBy);
-		offscreenCanvas.width = size;
-		offscreenCanvas.height = size;
-		var offscreenCtx = offscreenCanvas.getContext('2d');
-		offscreenCtx.save();
-		
-		offscreenCtx.translate(size / 2, size / 2);
-
-		
-
-		offscreenCtx.rotate(this.angle);
-		offscreenCtx.translate(0, 0);
-		//offscreenCtx.drawImage(image, -(image.width / 2), -(image.height / 2));
-		var offset = vindex === 0 ? this.startX : 0;
-		/*offscreenCtx.drawImage(this.spriteSheet, index * this.frameWidth + offset, vindex * this.frameHeight + this.startY, this.frameWidth, this,frameHeight, -(this.frameWidth / 2), -(this.frameWidth / 2), 100, 100);*/
-		offscreenCtx.drawImage(this.spriteSheet, index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
-                  this.frameWidth, this.frameHeight,
-                  -(this.frameWidth / 2), -(this.frameWidth / 2),
-                  this.frameWidth * scaleBy,
-                  this.frameHeight * scaleBy);
-
-		offscreenCtx.restore();
-		//offscreenCtx.strokeStyle = "red";
-		//offscreenCtx.strokeRect(0,0,size,size);
-		//this.cache[i] = offscreenCanvas;
-		this.cache.push(offscreenCanvas);
-		//times++;
+	var cacheSource = -1;
+	if (registry !== 0) {
+		cacheSource = scanRegistry(this.angle, globalAngleTolerance, this.registry);
 	}
-	//console.log(times);
+	//if there is a valid source for this animation use its cache
+	if (cacheSource >= 0) {
+		this.cache = this.registry[cacheSource].cache;
+	} else {
+		//otherwise generate empty cache of rotated sprites
+		for (var i = 0; i < this.frames; i++) {
+			this.cache[i] = 0;
+		}
+	}
+
+	
+	
+}
+
+Animation.prototype.generateFrame = function (i) {
+	var scaleBy = scaleBy || 1;
+
+	index = i;
+	var vindex = 0;
+	if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
+		index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
+       		vindex++;
+    	}
+    	while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
+       		index -= Math.floor(this.spriteSheet.width / this.frameWidth);
+       		vindex++;
+    	}
+		
+	var offscreenCanvas = document.createElement('canvas');
+	
+	var size = Math.max(this.frameWidth * scaleBy, this.frameHeight * scaleBy);
+	offscreenCanvas.width = size;
+	offscreenCanvas.height = size;
+	var offscreenCtx = offscreenCanvas.getContext('2d');
+	offscreenCtx.save();
+	
+	offscreenCtx.translate(size / 2, size / 2);
+		
+	offscreenCtx.rotate(this.angle);
+	offscreenCtx.translate(0, 0);
+	var offset = vindex === 0 ? this.startX : 0;
+	offscreenCtx.drawImage(this.spriteSheet, index * this.frameWidth + offset, vindex * this.
+				frameHeight + this.startY,  // source from sheet
+				this.frameWidth, this.frameHeight,
+				-(this.frameWidth / 2), -(this.frameWidth / 2),
+				this.frameWidth * scaleBy,
+				this.frameHeight * scaleBy);
+
+	offscreenCtx.restore();
+	this.cache[i] = offscreenCanvas;
+}
+
+//returns boolean of whether all sprites in the cache have been generated
+Animation.prototype.completeCache = function () {
+	for (var i = 0; i < this.frames; i++) {
+		if (this.cache[i] === 0) {
+			return false;
+		}
+	}
+	return true;
 }
 
 Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
@@ -88,16 +103,11 @@ Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     var locX = x;
     var locY = y;
     var offset = vindex === 0 ? this.startX : 0;
-    /*ctx.drawImage(this.spriteSheet,
-                  index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
-                  this.frameWidth, this.frameHeight,
-                  locX, locY,
-                  this.frameWidth * scaleBy,
-                  this.frameHeight * scaleBy);*/
-
-	/*ctx.drawImage(this.cache[this.currentFrame()], locX - (this.frameWidth/2)*scaleBy, locY - (this.frameHeight/2)*scaleBy);*/
-	ctx.drawImage(this.cache[this.currentFrame()], 0, 0, this.frameHeight, this.frameWidth, locX /*- (this.frameHeight/2)*scaleBy*/, locY /*- (this.frameHeight/2)*scaleBy*/, this.frameWidth*scaleBy, this.frameHeight*scaleBy);
-	//console.log(this.currentFrame());
+	if (this.cache[this.currentFrame()] === 0) {
+		this.generateFrame(this.currentFrame());
+	}
+	ctx.drawImage(this.cache[this.currentFrame()], 0, 0, this.frameHeight, this.frameWidth, 
+					locX, locY, this.frameWidth*scaleBy, this.frameHeight*scaleBy);
 }
 
 Animation.prototype.currentFrame = function () {
@@ -163,6 +173,26 @@ clickExplode.prototype.update = function() {
 
 
 var zScale = .4;
+globalAngleTolerance = 3;	//angle limit which entities will look the same in degrees
+//in order to add registries to a entity:
+//1. add specific global registries for each animation as empty arrays outside the constructor
+//2. pass the specific global registry(s) to the animation(s) in the constructor
+//3. add logic for adding to the registries when the entities are destroyed or complete.
+zombieWalkRegistry = [];
+zombieAttackRegistry = [];
+
+//global method for determining whether an animation should be added to a registry
+//returns index of acceptable animation or -1 if there is none, given
+//angle of animation to add, angleTolerance the space between animations allowable in the registry, registry to add to
+scanRegistry = function(angle, angleTolerance, registry) {
+	for (var i = 0; i < registry.length; i++) {
+		var angleDif = (angle - registry[i].angle) * 180 / Math.PI;
+		if (angleDif <= angleTolerance && angleDif >= -angleTolerance) {
+			return i;
+		}
+	}
+	return -1;
+}
 
 function Zombie(game, x, y) {
     
@@ -189,12 +219,21 @@ function Zombie(game, x, y) {
 	this.unitY = difY/magnitude;
 	this.speed = .2; //speed to modify unit vector
 	this.toCollide = (magnitude - 50) / .2;//steps to hit castle
-
-	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle);
-    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle);
+	/*
+	if (scanRegistry(this.angle, globalAngleTolerance, zombieWalkingRegistry) !== -1 && this.animation.completeCache()) {
+		zombieWalkingRegistry.push(this.animation);
+	}
+	if (scanRegistry(this.angle, globalAngleTolerance, zombieAttackingRegistry) !== -1 && this.attackingAnimation.completeCache()) {
+		zombieAttackRegisty.push(this.attackingAnimation);
+	}
+	*/
+	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle, zombieWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
 
 
     Entity.call(this, game, this.x, this.y);
+	
+	
 }
 
 Zombie.prototype = new Entity();
@@ -213,8 +252,10 @@ Zombie.prototype.update = function () {
 			//decrement health
 			this.health--;
 			//add new message entity to the game
-			if (this.health > 0)this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
-			//zombie is dead
+			if (this.health > 0){
+				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
+				//zombie is not dead
+			}
 		}
 	}
 
@@ -222,6 +263,15 @@ Zombie.prototype.update = function () {
 	    this.game.scoreBoard.updateScore(this.coinWorth);
 	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2)));
 	    this.removeFromWorld = true;
+		//add animations to respective registries if there is space and the animation is completely cached
+		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieWalkRegistry) === -1) {
+			zombieWalkRegistry.push(this.animation);
+			//console.log(zombieWalkRegistry.length);
+		}
+		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieAttackRegistry) === -1) {
+			zombieAttackRegistry.push(this.attackingAnimation);
+			//console.log(zombieAttackRegistry.length);
+		}
 	}
 	
 	//if/else to manage attack animation reset and movement of zombie
@@ -261,6 +311,9 @@ Zombie.prototype.draw = function (ctx) {
     Entity.prototype.draw.call(this);
 }
 
+archerWalkRegistry = [];
+archerAttackRegistry = [];
+
 function Archer(game, x, y) {
     this.scale = .5;
     this.attacking = false;
@@ -289,8 +342,8 @@ function Archer(game, x, y) {
     this.speed = .25; //speed to modify unit vector
     this.toCollide = (magnitude - 50) / .2;//steps to hit castle
 
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 128, 128, 0.05, 18, true, false, this.angle);
-    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/archerattack.png"), 0, 0, 128, 128, 0.1, 20, true, false, this.angle);
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 128, 128, 0.05, 18, true, false, this.angle, archerWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/archerattack.png"), 0, 0, 128, 128, 0.1, 20, true, false, this.angle, archerAttackRegistry);
 
 
     Entity.call(this, game, this.x, this.y);
@@ -312,7 +365,11 @@ Archer.prototype.update = function () {
             //decrement health
             this.health--;
             //add new message entity to the game
-            if (this.health > 0) this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25));
+            if (this.health > 0) {
+				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + 
+							this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25));
+				
+			}
             //zombie is dead
         }
     }
@@ -321,6 +378,15 @@ Archer.prototype.update = function () {
         this.game.scoreBoard.updateScore(this.coinWorth);
         this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2)));
         this.removeFromWorld = true;
+		
+		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerWalkRegistry) === -1) {
+			archerWalkRegistry.push(this.animation);
+			//console.log(archerWalkRegistry.length);
+		}
+		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerAttackRegistry) === -1) {
+			archerAttackRegistry.push(this.attackingAnimation);
+			//console.log(archerAttackRegistry.length);
+		}
     }
 
     //if/else to manage attack animation reset and movement of zombie
