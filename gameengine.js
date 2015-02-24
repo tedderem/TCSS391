@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.5.0';
+var version = 'v0.5.1';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -98,7 +98,7 @@ GameEngine.prototype.startInput = function () {
 
     var checkBuild = function (e) {
         var build = false;
-        if (e.layerX > that.ctx.canvas.width - that.buildings.archerIcon.width && e.layerY < 120 && that.scoreBoard.score >= 500) {
+        if (that.intermission && e.layerX > that.ctx.canvas.width - that.buildings.archerIcon.width && e.layerY < 120 && that.scoreBoard.score >= 500) {
             build = true;
             that.isBuilding = true;
             that.addTopEntity(new Tower(that));
