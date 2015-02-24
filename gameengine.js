@@ -1,5 +1,7 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
+var version = 'v0.5.0';
+
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
@@ -267,6 +269,10 @@ GameEngine.prototype.loop = function () {
 	    this.intermission = false;
 	}
 	this.populate();
+	this.ctx.globalAlpha = .25;
+	this.ctx.font = "bold 20pt Arial";
+	this.ctx.fillStyle = "white";
+	this.ctx.fillText(version, 3, 797);
 	this.ctx.restore();
 	this.click = null;
 	this.mouse = null;
