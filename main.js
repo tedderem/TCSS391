@@ -119,9 +119,12 @@ Animation.prototype.isDone = function () {
 }
 
 
-function Message(game, message, x, y) {
+function Message(game, message, x, y, color, fade, duration) {
 	this.message = message;
 	this.alpha = 1;
+	this.fade = fade || false;
+	this.duration = duration * 60 || null;
+	this.color = color || "white";
 	this.x = x;
 	this.y = y;
 	
@@ -132,15 +135,21 @@ Message.prototype = new Entity();
 Message.prototype.constructor = Message;
 
 Message.prototype.update = function () {
-	this.alpha = this.alpha - .03;
+    this.alpha = this.alpha - .03;
+    if (this.duration) this.duration--;
 	
-	if (this.alpha < 0) this.removeFromWorld = true;
+    if (this.fade && this.alpha < 0) {
+        this.removeFromWorld = true;
+    } else if (this.duration && this.duration <= 0) {
+        this.removeFromWorld = true;
+    }
 }
 
 Message.prototype.draw = function () {
 	this.game.ctx.save();
 	this.game.ctx.font = "10px Verdana";
-	this.game.ctx.fillStyle = "rgba(255, 255, 255, " + this.alpha + ")";
+	if (this.fade) this.game.ctx.globalAlpha = this.alpha;
+	this.game.ctx.fillStyle = this.color;
     this.game.ctx.fillText(this.message, this.x, this.y);
 	this.game.ctx.restore();
 }
@@ -253,7 +262,7 @@ Zombie.prototype.update = function () {
 			this.health--;
 			//add new message entity to the game
 			if (this.health > 0){
-				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25));
+				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
 				//zombie is not dead
 			}
 		}
@@ -261,7 +270,7 @@ Zombie.prototype.update = function () {
 
 	if (this.health <= 0) {
 	    this.game.scoreBoard.updateScore(this.coinWorth);
-	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2)));
+	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2), null, true));
 	    this.removeFromWorld = true;
 		//add animations to respective registries if there is space and the animation is completely cached
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieWalkRegistry) === -1) {
@@ -367,7 +376,7 @@ Archer.prototype.update = function () {
             //add new message entity to the game
             if (this.health > 0) {
 				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + 
-							this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25));
+							this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
 				
 			}
             //zombie is dead
@@ -376,7 +385,7 @@ Archer.prototype.update = function () {
 
     if (this.health <= 0) {
         this.game.scoreBoard.updateScore(this.coinWorth);
-        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2)));
+        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
         this.removeFromWorld = true;
 		
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerWalkRegistry) === -1) {

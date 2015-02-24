@@ -31,6 +31,9 @@ Timer.prototype.tick = function () {
 function GameEngine() {
     this.round = 0;
     this.castleHealth = 100;
+    this.buildDuration = 30;
+    this.intermission = false;
+    this.intermissionCancel = false;
     this.gameOver = false;
     this.isBuilding = false;
 	this.entities = [];
@@ -43,8 +46,6 @@ function GameEngine() {
     this.wheel = null;
     this.surfaceWidth = null;
     this.surfaceHeight = null;
-	this.mouseX = 0;
-	this.mouseY = 0;
 }
 
 GameEngine.prototype.addScoreBoard = function (scoreboard) {
@@ -104,6 +105,12 @@ GameEngine.prototype.startInput = function () {
         return build;
     }
 
+    this.ctx.canvas.addEventListener("keypress", function (e) {
+        if (String.fromCharCode(e.which) === 'x' && that.intermission) that.intermissionCancel = true;
+        e.preventDefault();
+    }, false);
+    
+
     this.ctx.canvas.addEventListener("mousemove", function (e) {
         if (that.isBuilding) that.mouse = e;
     }, false);
@@ -111,7 +118,7 @@ GameEngine.prototype.startInput = function () {
     this.ctx.canvas.addEventListener("click", function (e) {
         that.click = e;
         if (!that.isBuilding) {
-            if (!checkBuild(e) && !that.gameOver) that.addTopEntity(new clickExplode(that));
+            if (!checkBuild(e) && !that.gameOver && !that.intermission) that.addTopEntity(new clickExplode(that));
         } else {
             that.scoreBoard.updateScore(-500);
             that.isBuilding = false;
@@ -193,7 +200,7 @@ GameEngine.prototype.update = function () {
 
 GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
-	if (entitiesCount === 0 && !this.gameOver) {
+	if (entitiesCount === 0 && !this.gameOver && !this.intermission) {
 	    this.round++;
 		for (var i = 0; i < this.round * 1; i++) {
 			var startx = 0 + Math.random() * (800);
@@ -222,12 +229,43 @@ GameEngine.prototype.populate = function () {
     
 }
 
+GameEngine.prototype.checkRound = function () {
+    if (this.monsterEntities.length === 0 && !this.gameOver && !this.intermission && this.round > 0) {
+        this.intermission = true;
+        this.startTime = Date.now();
+    }
+
+    if (this.intermission) {
+        this.ctx.save();
+        this.ctx.font = "bold 40px arial";
+        this.ctx.fillStyle = "white";
+        this.ctx.fillText("Build & Repair!", 275, 115);
+        this.ctx.font = "bold 20px arial";
+        this.ctx.fillText("Press 'x' to cancel", 320, 650);
+        var time = Math.floor((Date.now() - this.startTime) / 1000);
+        this.ctx.font = "bold 60px arial";
+        if (time >= 25) this.ctx.fillStyle = "red";
+        var offset = time > 20 ? 10 : 0;
+        this.ctx.fillText(this.buildDuration - time, 375 + offset, 175);
+        
+        this.ctx.restore();
+
+        if (time === this.buildDuration) this.intermission = false;
+    }
+}
+
 
 GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
-	this.ctx.save();
+    this.ctx.save();    
 	this.update();
-    this.draw();
+	this.draw();
+	if (!this.intermissionCancel) {
+	    this.checkRound();
+	} else {
+	    this.intermissionCancel = false;
+	    this.intermission = false;
+	}
 	this.populate();
 	this.ctx.restore();
 	this.click = null;
