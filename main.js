@@ -350,7 +350,7 @@ function Archer(game, x, y) {
     this.unitX = difX / magnitude; //x,y of unit vector to center
     this.unitY = difY / magnitude;
     this.speed = .25; //speed to modify unit vector
-    this.range = 315 / this.speed;
+    this.range = 200 / this.speed;
     this.toCollide = (magnitude) / this.speed;//steps to hit castle
 
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, archerWalkRegistry);

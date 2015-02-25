@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.6.3';
+var version = 'v0.6.4';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -204,10 +204,20 @@ GameEngine.prototype.update = function () {
 var CalcCoords = function () {
     if (Math.random() < .5) {
         var startx = -50 + Math.random() * 850;
-        var starty = Math.random() < .5 ? -100 : 900;
+
+        if (Math.random() < .5) {
+            var starty = Math.random() < .75 ? (-100 - Math.random() * 300) : -100;
+        } else {
+            var starty = Math.random() < .75 ? (900 + Math.random() * 300) : 900;
+        }
     } else {
         var starty = -50 + Math.random() * 850;
-        var startx = Math.random() < .5 ? -100 : 900;
+
+        if (Math.random() < .5) {
+            var startx = Math.random() < .75 ? (-100 - Math.random() * 300) : -100;
+        } else {
+            var startx = Math.random() < .75 ? (900 + Math.random() * 300) : 900;
+        }
     }
 
     return { x: startx, y: starty };
@@ -220,23 +230,23 @@ GameEngine.prototype.populate = function () {
 	    var firstLocValue = [-400, 400];
 	    var secondLocValue = [-200, 800];
         //Spawn zombies
-	    for (var i = 0; i < this.round * 3; i++) {
+	    for (var i = 0; i < this.round * 2; i++) {
 	        var coords = CalcCoords();
 
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
 	    }
         //spawn archers
-	    for (var i = 0; i < Math.floor(this.round / 2); i++) {
+	    for (var i = 0; i < Math.floor(this.round / 3); i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Archer(this, coords.x, coords.y));
 	    }
 	    //spawn warriors
-	    for (var i = 0; i < Math.floor(this.round / 4) ; i++) {
+	    for (var i = 0; i < Math.floor(this.round / 5); i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Warrior(this, coords.x, coords.y));
 	    }
 	    //spawn dudes
-	    for (var i = 0; i < Math.floor(this.round / 6) ; i++) {
+	    if (this.round % 10 === 0) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Dude(this, coords.x, coords.y));
 	    }
