@@ -214,8 +214,8 @@ function Zombie(game, x, y) {
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
-	this.targetX = 400;
-	this.targetY = 400;
+	this.targetX = 375;
+	this.targetY = 380;
 	//calculate angle to target, 400,400 to center for now
 	var difX = this.targetX - this.x; // x,y of vector to center
 	var difY = this.targetY - this.y;
@@ -336,8 +336,8 @@ function Archer(game, x, y) {
     //this.damage = 2;
     this.x = x;
     this.y = y;
-    this.targetX = 400;
-    this.targetY = 400;
+    this.targetX = 370;
+    this.targetY = 385;
     //calculate angle to target, 400,400 to center for now
     var difX = this.targetX - this.x; // x,y of vector to center
     var difY = this.targetY - this.y;
@@ -452,8 +452,8 @@ function Warrior(game, x, y) {
     this.damage = 1;
     this.x = x;
     this.y = y;
-    this.targetX = 400;
-    this.targetY = 400;
+    this.targetX = 375;
+    this.targetY = 380;
     //calculate angle to target, 400,400 to center for now
     var difX = this.targetX - this.x; // x,y of vector to center
     var difY = this.targetY - this.y;
@@ -555,18 +555,18 @@ dudeWalkRegistry = [];
 dudeAttackRegistry = [];
 
 function Dude(game, x, y) {
-    this.scale = .5;
+    this.scale = .6;
     this.attacking = false;
     this.radius = 100;
     this.maxHealth = 50;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 80;
+    this.coinWorth = 100;
     this.damage = 5;
     this.x = x;
     this.y = y;
-    this.targetX = 400;
-    this.targetY = 400;
+    this.targetX = 375;
+    this.targetY = 380;
     //calculate angle to target, 400,400 to center for now
     var difX = this.targetX - this.x; // x,y of vector to center
     var difY = this.targetY - this.y;
@@ -683,8 +683,9 @@ ScoreBoard.prototype.draw = function () {
     this.game.ctx.fillText("BitCoins: " + this.score, 2, 17);
 	this.game.ctx.fillStyle = "black";
 	this.game.ctx.fillText("Round: " + this.game.round, 2, 34);
+	this.game.ctx.fillText("Enemies: " + this.game.monsterEntities.length, 2, 51);
 	this.game.ctx.fillStyle = "darkred";
-    this.game.ctx.fillText("Health: " + this.game.castleHealth, 2, 51);
+    this.game.ctx.fillText("Health: " + this.game.castleHealth, 2, 68);
 	
 }
 

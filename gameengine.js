@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.6.0';
+var version = 'v0.6.3';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -201,32 +201,45 @@ GameEngine.prototype.update = function () {
     if (this.castleHealth <= 0) this.gameOver = true;
 }
 
+var CalcCoords = function () {
+    if (Math.random() < .5) {
+        var startx = -50 + Math.random() * 850;
+        var starty = Math.random() < .5 ? -100 : 900;
+    } else {
+        var starty = -50 + Math.random() * 850;
+        var startx = Math.random() < .5 ? -100 : 900;
+    }
+
+    return { x: startx, y: starty };
+}
+
 GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
 	if (entitiesCount === 0 && !this.gameOver && !this.intermission) {
 	    this.round++;
-		for (var i = 0; i < this.round * 3; i++) {
-			var startx = 0 + Math.random() * (800);
-			var starty = 800 + Math.random() * 200;
-			this.addMonsterEntity(new Zombie(this, startx, starty));
-			startx = 0 + Math.random() * (800);
-			starty = 0 + Math.random() * -200;
-			this.addMonsterEntity(new Zombie(this, startx, starty));
-			startx = 800 + Math.random() * 200;
-			starty = 0 + Math.random() * 800;
-			this.addMonsterEntity(new Zombie(this, startx, starty));
-			startx = 0 + Math.random() * -200;
-			starty = 0 + Math.random() * 800;
-			this.addMonsterEntity(new Zombie(this, startx, starty));
-			startx = 0 + Math.random() * -200;
-			starty = 0 + Math.random() * 800;
-			this.addMonsterEntity(new Archer(this, startx, starty));
-			startx = 200;
-			starty = 200;
-			this.addMonsterEntity(new Warrior(this, startx, starty));
-			this.addMonsterEntity(new Dude(this, 600, 600));
+	    var firstLocValue = [-400, 400];
+	    var secondLocValue = [-200, 800];
+        //Spawn zombies
+	    for (var i = 0; i < this.round * 3; i++) {
+	        var coords = CalcCoords();
 
-		} 
+	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
+	    }
+        //spawn archers
+	    for (var i = 0; i < Math.floor(this.round / 2); i++) {
+	        var coords = CalcCoords();
+	        this.addMonsterEntity(new Archer(this, coords.x, coords.y));
+	    }
+	    //spawn warriors
+	    for (var i = 0; i < Math.floor(this.round / 4) ; i++) {
+	        var coords = CalcCoords();
+	        this.addMonsterEntity(new Warrior(this, coords.x, coords.y));
+	    }
+	    //spawn dudes
+	    for (var i = 0; i < Math.floor(this.round / 6) ; i++) {
+	        var coords = CalcCoords();
+	        this.addMonsterEntity(new Dude(this, coords.x, coords.y));
+	    }
 	} else if (this.gameOver) {
 	    this.ctx.font = "bold 60px arial";
 	    this.ctx.fillStyle = "black";
