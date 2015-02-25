@@ -31,6 +31,7 @@ Timer.prototype.tick = function () {
 }
 
 function GameEngine() {
+    this.gameStarted = false;
     this.round = 0;
     this.castleHealth = 100;
     this.buildDuration = 30;
@@ -109,6 +110,7 @@ GameEngine.prototype.startInput = function () {
 
     this.ctx.canvas.addEventListener("keypress", function (e) {
         if (String.fromCharCode(e.which) === 'x' && that.intermission) that.intermissionCancel = true;
+        if (e.keyCode === 13 && !that.gameStarted) that.gameStarted = true;
         e.preventDefault();
     }, false);
     
@@ -121,7 +123,7 @@ GameEngine.prototype.startInput = function () {
         //console.log(e.layerX + ", " + e.layerY);
         that.click = e;
         if (!that.isBuilding) {
-            if (!checkBuild(e) && !that.gameOver && !that.intermission) that.addTopEntity(new clickExplode(that));
+            if (!checkBuild(e) && !that.gameOver && !that.intermission && that.gameStarted) that.addTopEntity(new clickExplode(that));
         } else {
             that.scoreBoard.updateScore(-500);
             that.isBuilding = false;
@@ -288,29 +290,36 @@ GameEngine.prototype.checkRound = function () {
 
 GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
-    this.ctx.save();    
-	this.update();
-	this.draw();
-	if (!this.intermissionCancel) {
-	    this.checkRound();
-	} else {
-	    this.intermissionCancel = false;
-	    this.intermission = false;
-	}
-	this.populate();
-	this.ctx.save();
-	this.ctx.globalAlpha = .25;
-	this.ctx.font = "bold 20pt Arial";
-	this.ctx.fillStyle = "white";
-	this.ctx.fillText(version, 3, 797);
-	this.ctx.restore();
+    if (this.gameStarted) {
+        this.ctx.save();
+        this.update();
+        this.draw();
+        if (!this.intermissionCancel) {
+            this.checkRound();
+        } else {
+            this.intermissionCancel = false;
+            this.intermission = false;
+        }
+        this.populate();
+        this.ctx.save();
+        this.ctx.globalAlpha = .25;
+        this.ctx.font = "bold 20pt Arial";
+        this.ctx.fillStyle = "white";
+        this.ctx.fillText(version, 3, 797);
+        this.ctx.restore();
 
-	this.ctx.save();
-	this.fog.draw();
-	this.ctx.restore();
+        this.ctx.save();
+        this.fog.draw();
+        this.ctx.restore();
 
-	this.scoreBoard.draw();
-	this.ctx.restore();
+        this.scoreBoard.draw();
+        this.ctx.restore();
+    } else {
+        this.ctx.save();
+        this.update();
+        this.startScreen.draw();
+        this.ctx.restore();
+    }
 	this.click = null;
 	this.mouse = null;
 }

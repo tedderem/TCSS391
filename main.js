@@ -832,6 +832,18 @@ Fog.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
 }
 
+function StartScreen(game) {
+    this.image = ASSET_MANAGER.getAsset("./img/prevail.png");
+    Entity.call(this, game, 0, 0);
+}
+
+StartScreen.prototype = new Entity();
+StartScreen.prototype.constructor = StartScreen;
+
+StartScreen.prototype.draw = function () {
+    this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+}
+
 function Buildings(game) {
     this.archerIcon = ASSET_MANAGER.getAsset("./img/towerIcon.png");
     this.archerPrice = 500;
@@ -873,7 +885,7 @@ ASSET_MANAGER.queueDownload("./img/bigdudeattack.png");
 ASSET_MANAGER.queueDownload("./img/warriorwalk.png");
 ASSET_MANAGER.queueDownload("./img/warriorattack.png");
 ASSET_MANAGER.queueDownload("./img/arrow.png");
-
+ASSET_MANAGER.queueDownload("./img/prevail.png");
 
 
 ASSET_MANAGER.downloadAll(function () {
@@ -882,6 +894,7 @@ ASSET_MANAGER.downloadAll(function () {
     var ctx = canvas.getContext('2d');
 	
     var gameEngine = new GameEngine();
+    gameEngine.startScreen = new StartScreen(gameEngine);
 
     var scoreBoard = new ScoreBoard(gameEngine);
     gameEngine.addScoreBoard(scoreBoard);
