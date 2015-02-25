@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.6.4';
+var version = 'v0.6.5';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
