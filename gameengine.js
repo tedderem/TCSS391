@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.5.1';
+var version = 'v0.6.0';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -118,6 +118,7 @@ GameEngine.prototype.startInput = function () {
     }, false);
 
     this.ctx.canvas.addEventListener("click", function (e) {
+        //console.log(e.layerX + ", " + e.layerY);
         that.click = e;
         if (!that.isBuilding) {
             if (!checkBuild(e) && !that.gameOver && !that.intermission) that.addTopEntity(new clickExplode(that));
@@ -204,7 +205,7 @@ GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
 	if (entitiesCount === 0 && !this.gameOver && !this.intermission) {
 	    this.round++;
-		for (var i = 0; i < this.round * 1; i++) {
+		for (var i = 0; i < this.round * 3; i++) {
 			var startx = 0 + Math.random() * (800);
 			var starty = 800 + Math.random() * 200;
 			this.addMonsterEntity(new Zombie(this, startx, starty));
@@ -220,6 +221,11 @@ GameEngine.prototype.populate = function () {
 			startx = 0 + Math.random() * -200;
 			starty = 0 + Math.random() * 800;
 			this.addMonsterEntity(new Archer(this, startx, starty));
+			startx = 200;
+			starty = 200;
+			this.addMonsterEntity(new Warrior(this, startx, starty));
+			this.addMonsterEntity(new Dude(this, 600, 600));
+
 		} 
 	} else if (this.gameOver) {
 	    this.ctx.font = "bold 60px arial";
@@ -269,10 +275,18 @@ GameEngine.prototype.loop = function () {
 	    this.intermission = false;
 	}
 	this.populate();
+	this.ctx.save();
 	this.ctx.globalAlpha = .25;
 	this.ctx.font = "bold 20pt Arial";
 	this.ctx.fillStyle = "white";
 	this.ctx.fillText(version, 3, 797);
+	this.ctx.restore();
+
+	this.ctx.save();
+	this.fog.draw();
+	this.ctx.restore();
+
+	this.scoreBoard.draw();
 	this.ctx.restore();
 	this.click = null;
 	this.mouse = null;
