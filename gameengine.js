@@ -283,7 +283,7 @@ GameEngine.prototype.checkRound = function () {
         
         this.ctx.restore();
 
-        if (time === this.buildDuration) this.intermission = false;
+        if (time >= this.buildDuration) this.intermission = false;
     }
 }
 

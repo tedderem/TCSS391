@@ -203,8 +203,7 @@ scanRegistry = function(angle, angleTolerance, registry) {
 	return -1;
 }
 
-function Zombie(game, x, y) {
-    
+function Zombie(game, x, y) {    
     this.attacking = false;
     this.radius = 100;
 	this.maxHealth = 5;
@@ -554,6 +553,7 @@ Warrior.prototype.draw = function (ctx) {
 dudeWalkRegistry = [];
 dudeAttackRegistry = [];
 
+//Mercenary enemy, larger and hits harder
 function Dude(game, x, y) {
     this.scale = .6;
     this.attacking = false;
