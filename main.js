@@ -928,12 +928,5 @@ ASSET_MANAGER.downloadAll(function () {
     
 	gameEngine.init(ctx);
 	gameEngine.start();
-
-	var soundID = "music";
-	createjs.Sound.registerSound("./sounds/music.mp3", soundID);
-
-	createjs.Sound.play(soundID);
 });
-
-
 
