@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.7.5';
+var version = 'v0.7.4';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -34,6 +34,8 @@ function GameEngine() {
     this.gameStarted = false;
     this.round = 0;
     this.castleHealth = 100;
+    this.maxCastleHealth = 100;
+    this.speedModifier = 1;
     this.buildDuration = 60;
     this.intermission = false;
     this.intermissionCancel = false;
@@ -53,10 +55,6 @@ function GameEngine() {
 
 GameEngine.prototype.addScoreBoard = function (scoreboard) {
     this.scoreBoard = scoreboard;
-}
-
-GameEngine.prototype.addBuildings = function (buildings) {
-    this.buildings = buildings;
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -97,20 +95,46 @@ GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
 
-    var checkBuild = function (e) {
-        var build = false;
-        if (that.intermission && e.layerX > that.ctx.canvas.width - that.buildings.archerIcon.width && e.layerY < 120 && that.scoreBoard.score >= 500) {
-            build = true;
+    this.ctx.canvas.addEventListener("keypress", function (e) {
+        //user hit 'x' to cancel building phase
+        if (e.keyCode === 120 && that.intermission) {
+            that.intermissionCancel = true;
+            console.log("intermission canceled");
+        }
+        //user hit enter to start game
+        if (e.keyCode === 13 && !that.gameStarted) that.gameStarted = true;
+        //user hit 1 to restore health
+        if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
+            that.scoreBoard.updateScore(-250);
+            that.castleHealth = that.maxCastleHealth;
+        }
+        //user hit 2 to increase max health
+        if (e.keyCode === 50 && that.intermission && that.scoreBoard.score >= 500) {
+            that.scoreBoard.updateScore(-500);
+            that.maxCastleHealth += 50;
+        }
+        //user hit 3 to create archer tower
+        if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
+            that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+            that.scoreBoard.updateScore(-1000);
             that.isBuilding = true;
             that.addTopEntity(new Tower(that));
         }
+        //user hit 4 to create a cannon tower 
+        if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
+            that.addTopEntity(new Message(that, "Not yet implemented", 275, 550, "red", false, 2, "Bold 15pt"));
+            //that.scoreBoard.update(-1000);
+            //that.isBuilding = true;
+            //that.addTopEntity(new Tower(that));
+        }
 
-        return build;
-    }
-
-    this.ctx.canvas.addEventListener("keypress", function (e) {
-        if (String.fromCharCode(e.which) === 'x' && that.intermission) that.intermissionCancel = true;
-        if (e.keyCode === 13 && !that.gameStarted) that.gameStarted = true;
+        //user hit 5 to add a bog
+        if (e.keyCode === 53 && that.intermission && that.speedModifier === 1 && that.scoreBoard.score >= 5000) {
+            that.scoreBoard.updateScore(-5000);
+            that.speedModifier = .75;
+        } else if (e.keyCode === 53 && that.intermission && that.speedModifier !== 1) {
+            that.addTopEntity(new Message(that, "Bog already purchased", 275, 550, "red", false, 2, "Bold 15pt"));
+        }
         e.preventDefault();
     }, false);
     
@@ -123,9 +147,8 @@ GameEngine.prototype.startInput = function () {
         //console.log(e.layerX + ", " + e.layerY);
         that.click = e;
         if (!that.isBuilding) {
-            if (!checkBuild(e) && !that.gameOver && !that.intermission && that.gameStarted) that.addTopEntity(new clickExplode(that));
+            if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) that.addTopEntity(new clickExplode(that));
         } else {
-            that.scoreBoard.updateScore(-500);
             that.isBuilding = false;
             that.mouse = null;
         }
@@ -203,22 +226,23 @@ GameEngine.prototype.update = function () {
     if (this.castleHealth <= 0) this.gameOver = true;
 }
 
+//Calculate the coordinates for the enemies spawning in
 var CalcCoords = function () {
     if (Math.random() < .5) {
         var startx = -50 + Math.random() * 850;
 
         if (Math.random() < .5) {
-            var starty = Math.random() < .75 ? (-100 - Math.random() * 300) : -100;
+            var starty = Math.random() < .75 ? (-100 - Math.random() * 200) : -100;
         } else {
-            var starty = Math.random() < .75 ? (900 + Math.random() * 300) : 900;
+            var starty = Math.random() < .75 ? (900 + Math.random() * 200) : 900;
         }
     } else {
         var starty = -50 + Math.random() * 850;
 
         if (Math.random() < .5) {
-            var startx = Math.random() < .75 ? (-100 - Math.random() * 300) : -100;
+            var startx = Math.random() < .75 ? (-100 - Math.random() * 200) : -100;
         } else {
-            var startx = Math.random() < .75 ? (900 + Math.random() * 300) : 900;
+            var startx = Math.random() < .75 ? (900 + Math.random() * 200) : 900;
         }
     }
 
@@ -293,8 +317,13 @@ GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
     if (this.gameStarted) {
         this.ctx.save();
-        this.update();
+        this.update();        
         this.draw();
+        if (this.intermission) {
+            this.ctx.save();
+            this.fog.draw();
+            this.ctx.restore();
+        }
         if (!this.intermissionCancel) {
             this.checkRound();
         } else {

@@ -139,11 +139,13 @@ Animation.prototype.isDone = function () {
 }
 
 
-function Message(game, message, x, y, color, fade, duration) {
+function Message(game, message, x, y, color, fade, duration, fontsize) {
 	this.message = message;
 	this.alpha = 1;
+	this.fontType = " Verdana";
+	this.fontSize = fontsize || "8pt";
 	this.fade = fade || false;
-	this.duration = duration * 60 || null;
+	this.duration = duration * 60;
 	this.color = color || "white";
 	this.x = x;
 	this.y = y;
@@ -157,17 +159,19 @@ Message.prototype.constructor = Message;
 Message.prototype.update = function () {
     this.alpha = this.alpha - .03;
     if (this.duration) this.duration--;
+    
 	
     if (this.fade && this.alpha < 0) {
         this.removeFromWorld = true;
-    } else if (this.duration && this.duration <= 0) {
+    }
+    if (this.duration && this.duration <= 1) {
         this.removeFromWorld = true;
     }
 }
 
 Message.prototype.draw = function () {
 	this.game.ctx.save();
-	this.game.ctx.font = "10px Verdana";
+	this.game.ctx.font = this.fontSize + this.fontType;
 	if (this.fade) this.game.ctx.globalAlpha = this.alpha;
 	this.game.ctx.fillStyle = this.color;
     this.game.ctx.fillText(this.message, this.x, this.y);
@@ -245,7 +249,7 @@ function Zombie(game, x, y) {
 	}
 	this.unitX = difX/magnitude; //x,y of unit vector to center
 	this.unitY = difY/magnitude;
-	this.speed = .2; //speed to modify unit vector
+	this.speed = .2 * game.speedModifier; //speed to modify unit vector
 	this.range = 75 / this.speed;
 	this.toCollide = (magnitude) / this.speed;//steps to hit castle
 	/*
@@ -368,7 +372,7 @@ function Archer(game, x, y) {
     this.angle += Math.PI/2;
     this.unitX = difX / magnitude; //x,y of unit vector to center
     this.unitY = difY / magnitude;
-    this.speed = .25; //speed to modify unit vector
+    this.speed = .25 * game.speedModifier; //speed to modify unit vector
     this.range = 200 / this.speed;
     this.toCollide = (magnitude) / this.speed;//steps to hit castle
 
@@ -483,11 +487,11 @@ function Warrior(game, x, y) {
     }
     this.unitX = difX / magnitude; //x,y of unit vector to center
     this.unitY = difY / magnitude;
-    this.speed = .25; //speed to modify unit vector
+    this.speed = .4 * game.speedModifier; //speed to modify unit vector
     this.range = 75 / this.speed;
     this.toCollide = (magnitude) / this.speed;//steps to hit castle
 
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/warriorwalk.png"), 0, 0, 127, 127, 0.075, 24, true, false, this.angle, warriorWalkRegistry);
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/warriorwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, warriorWalkRegistry);
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/warriorattack.png"), 0, 0, 195, 195, 0.15, 14, true, false, this.angle, warriorAttackRegistry);
 
 
@@ -597,7 +601,7 @@ function Dude(game, x, y) {
     }
     this.unitX = difX / magnitude; //x,y of unit vector to center
     this.unitY = difY / magnitude;
-    this.speed = .15; //speed to modify unit vector
+    this.speed = .15 * game.speedModifier; //speed to modify unit vector
     this.range = 75 / this.speed;
     this.toCollide = (magnitude) / this.speed;//steps to hit castle
 
@@ -705,7 +709,7 @@ ScoreBoard.prototype.draw = function () {
 	this.game.ctx.fillText("Round: " + this.game.round, 2, 34);
 	this.game.ctx.fillText("Enemies: " + this.game.monsterEntities.length, 2, 51);
 	this.game.ctx.fillStyle = "darkred";
-    this.game.ctx.fillText("Health: " + this.game.castleHealth, 2, 68);
+    this.game.ctx.fillText("Health: " + this.game.castleHealth + "/" + this.game.maxCastleHealth, 2, 68);
 	
 }
 
@@ -864,30 +868,6 @@ StartScreen.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
 }
 
-function Buildings(game) {
-    this.archerIcon = ASSET_MANAGER.getAsset("./img/towerIcon.png");
-    this.archerPrice = 500;
-    Entity.call(this, game, 0, 0);
-}
-
-Buildings.prototype = new Entity();
-Buildings.prototype.constructor = Buildings;
-
-Buildings.prototype.draw = function () {
-    if (this.game.scoreBoard.score >= this.archerPrice) {
-        this.game.ctx.drawImage(this.archerIcon, this.game.ctx.canvas.width - this.archerIcon.width - 10, 5, this.archerIcon.width, this.archerIcon.height);
-    } else {
-        this.game.ctx.save();
-        this.game.ctx.globalAlpha = .5;
-        this.game.ctx.drawImage(this.archerIcon, this.game.ctx.canvas.width - this.archerIcon.width - 10, 5, this.archerIcon.width, this.archerIcon.height);
-        this.game.ctx.restore();
-    }
-    this.game.ctx.fillStyle = "black";
-    this.game.ctx.font = "12pt Arial";
-    this.game.ctx.fillText("Price: " + this.archerPrice, this.game.ctx.canvas.width - this.archerIcon.width - 5, this.archerIcon.height + 20);
-}
-
-
 // the "main" code begins here
 
 var ASSET_MANAGER = new AssetManager();
@@ -924,10 +904,6 @@ ASSET_MANAGER.downloadAll(function () {
     gameEngine.fog = new Fog(gameEngine);
     //gameEngine.addEntity(scoreBoard);
     gameEngine.addEntity(new Castle(gameEngine));
-
-    var buildings = new Buildings(gameEngine);
-    gameEngine.addTopEntity(buildings);
-    gameEngine.addBuildings(buildings);
     
 	gameEngine.init(ctx);
 	gameEngine.start();
