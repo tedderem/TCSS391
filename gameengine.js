@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.6.5';
+var version = 'v0.7.5';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -34,7 +34,7 @@ function GameEngine() {
     this.gameStarted = false;
     this.round = 0;
     this.castleHealth = 100;
-    this.buildDuration = 30;
+    this.buildDuration = 60;
     this.intermission = false;
     this.intermissionCancel = false;
     this.gameOver = false;
@@ -266,15 +266,16 @@ GameEngine.prototype.checkRound = function () {
     if (this.monsterEntities.length === 0 && !this.gameOver && !this.intermission && this.round > 0) {
         this.intermission = true;
         this.startTime = Date.now();
+        this.barOffset = 0;
     }
 
     if (this.intermission) {
+        this.barOffset = this.barOffset === 200 ? 200 : this.barOffset + 10;
+        this.ctx.drawImage(this.buildBar, 0, 800 - this.barOffset, this.buildBar.width, this.buildBar.height);
         this.ctx.save();
         this.ctx.font = "bold 40px arial";
         this.ctx.fillStyle = "white";
         this.ctx.fillText("Build & Repair!", 275, 115);
-        this.ctx.font = "bold 20px arial";
-        this.ctx.fillText("Press 'x' to cancel", 320, 650);
         var time = Math.floor((Date.now() - this.startTime) / 1000);
         this.ctx.font = "bold 60px arial";
         if (time >= 25) this.ctx.fillStyle = "red";
@@ -307,10 +308,11 @@ GameEngine.prototype.loop = function () {
         this.ctx.fillStyle = "white";
         this.ctx.fillText(version, 3, 797);
         this.ctx.restore();
-
-        this.ctx.save();
-        this.fog.draw();
-        this.ctx.restore();
+        if (!this.intermission) {
+            this.ctx.save();
+            this.fog.draw();
+            this.ctx.restore();
+        }
 
         this.scoreBoard.draw();
         this.ctx.restore();

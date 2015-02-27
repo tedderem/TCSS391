@@ -906,6 +906,8 @@ ASSET_MANAGER.queueDownload("./img/warriorwalk.png");
 ASSET_MANAGER.queueDownload("./img/warriorattack.png");
 ASSET_MANAGER.queueDownload("./img/arrow.png");
 ASSET_MANAGER.queueDownload("./img/prevail.png");
+ASSET_MANAGER.queueDownload("./img/buildbar.png");
+
 
 
 ASSET_MANAGER.downloadAll(function () {
@@ -915,6 +917,7 @@ ASSET_MANAGER.downloadAll(function () {
 	
     var gameEngine = new GameEngine();
     gameEngine.startScreen = new StartScreen(gameEngine);
+    gameEngine.buildBar = ASSET_MANAGER.getAsset("./img/buildbar.png");
 
     var scoreBoard = new ScoreBoard(gameEngine);
     gameEngine.addScoreBoard(scoreBoard);
