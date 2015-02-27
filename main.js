@@ -1,3 +1,23 @@
+var GameGrid = function(game) {
+    this.game = game;
+    this.rows = 10;
+    this.columns = 10;
+    this.emptySpot = ' ';
+    this.takenSpot = 'X';
+    this.spots = [];
+
+    for (var i = 0; i < this.rows; i++) {
+        this.spots.push([]);
+        for (var j = 0; j < this.columns; j++) {
+            this.spots(i).push(this.emptySpot);
+        }
+    }
+}
+
+GameGrid.prototype.draw = function (ctx) {
+
+}
+
 function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, angle, registry) {
     this.spriteSheet = spriteSheet;
     this.startX = startX;
@@ -907,8 +927,13 @@ ASSET_MANAGER.downloadAll(function () {
     gameEngine.addBuildings(buildings);
     
 	gameEngine.init(ctx);
-    gameEngine.start();
-		
-    
+	gameEngine.start();
+
+	var soundID = "music";
+	createjs.Sound.registerSound("./sounds/music.mp3", soundID);
+
+	createjs.Sound.play(soundID);
 });
+
+
 
