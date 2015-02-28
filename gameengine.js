@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.7.4';
+var version = 'v0.8.3';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -90,6 +90,23 @@ GameEngine.prototype.addMonsterEntity = function (entity) {
     this.monsterEntities.push(entity);
 }
 
+GameEngine.prototype.restart = function (entity) {
+    this.round = 0;
+    this.castleHealth = 100;
+    this.maxCastleHealth = this.castleHealth;
+    this.gameOver = false;
+    this.speedModifier = 1;
+    this.intermission = false;
+    this.intermissionCancel = false;
+    this.gameOver = false;
+    this.isBuilding = false;
+    this.monsterEntities = [];
+    this.topEntities = [];
+
+    var sb = new ScoreBoard(this);
+    this.addScoreBoard(sb);
+}
+
 
 GameEngine.prototype.startInput = function () {
     console.log('Starting input');
@@ -102,7 +119,11 @@ GameEngine.prototype.startInput = function () {
             console.log("intermission canceled");
         }
         //user hit enter to start game
-        if (e.keyCode === 13 && !that.gameStarted) that.gameStarted = true;
+        if (e.keyCode === 13 && !that.gameStarted) {
+            that.gameStarted = true;
+        } else if (e.keyCode === 13 && that.gameStarted && that.gameOver) {
+            that.restart();
+        }
         //user hit 1 to restore health
         if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
             that.scoreBoard.updateScore(-250);
@@ -122,10 +143,10 @@ GameEngine.prototype.startInput = function () {
         }
         //user hit 4 to create a cannon tower 
         if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
-            that.addTopEntity(new Message(that, "Not yet implemented", 275, 550, "red", false, 2, "Bold 15pt"));
-            //that.scoreBoard.update(-1000);
-            //that.isBuilding = true;
-            //that.addTopEntity(new Tower(that));
+            that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+            that.scoreBoard.updateScore(-1500);
+            that.isBuilding = true;
+            that.addTopEntity(new Cannon(that));
         }
 
         //user hit 5 to add a bog
@@ -256,30 +277,31 @@ GameEngine.prototype.populate = function () {
 	    var firstLocValue = [-400, 400];
 	    var secondLocValue = [-200, 800];
         //Spawn zombies
-	    for (var i = 0; i < this.round * 2; i++) {
+	    for (var i = 0; i < this.round * 1; i++) {
 	        var coords = CalcCoords();
-
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
 	    }
+
         //spawn archers
 	    for (var i = 0; i < Math.floor(this.round / 3); i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Archer(this, coords.x, coords.y));
 	    }
+
 	    //spawn warriors
 	    for (var i = 0; i < Math.floor(this.round / 5); i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Warrior(this, coords.x, coords.y));
 	    }
-	    //spawn dudes
-	    if (this.round % 10 === 0) {
-	        var coords = CalcCoords();
-	        this.addMonsterEntity(new Dude(this, coords.x, coords.y));
+
+	    //spawn dudes/berserkers
+	    for (var i = 0; i < Math.floor(this.round / 10); i++) {
+            //50 percent chance that he will spawn
+	        if (Math.random() < .5) {
+	            var coords = CalcCoords();
+	            this.addMonsterEntity(new Dude(this, coords.x, coords.y));
+            }
 	    }
-	} else if (this.gameOver) {
-	    this.ctx.font = "bold 60px arial";
-	    this.ctx.fillStyle = "black";
-	    this.ctx.fillText("GAME OVER", 225, 400);
 	}
 
 	
@@ -302,8 +324,8 @@ GameEngine.prototype.checkRound = function () {
         this.ctx.fillText("Build & Repair!", 275, 115);
         var time = Math.floor((Date.now() - this.startTime) / 1000);
         this.ctx.font = "bold 60px arial";
-        if (time >= 25) this.ctx.fillStyle = "red";
-        var offset = time > 20 ? 10 : 0;
+        if (time >= this.buildDuration - 5) this.ctx.fillStyle = "red";
+        var offset = time > this.buildDuration - 10 ? 10 : 0;
         this.ctx.fillText(this.buildDuration - time, 375 + offset, 175);
         
         this.ctx.restore();
@@ -315,7 +337,7 @@ GameEngine.prototype.checkRound = function () {
 
 GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
-    if (this.gameStarted) {
+    if (this.gameStarted && !this.gameOver) {
         this.ctx.save();
         this.update();        
         this.draw();
@@ -345,10 +367,15 @@ GameEngine.prototype.loop = function () {
 
         this.scoreBoard.draw();
         this.ctx.restore();
-    } else {
+    } else if (!this.gameStarted && !this.gameOver) {
         this.ctx.save();
         this.update();
         this.startScreen.draw();
+        this.ctx.restore();
+    } else if (this.gameOver) {
+        this.ctx.save();
+        this.update();
+        this.gameOverScreen.draw();
         this.ctx.restore();
     }
 	this.click = null;

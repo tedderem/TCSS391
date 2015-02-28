@@ -1,4 +1,5 @@
-var GameGrid = function(game) {
+//In place for now for grid system later on for towers
+var GameGrid = function (game) {
     this.game = game;
     this.rows = 10;
     this.columns = 10;
@@ -233,7 +234,7 @@ function Zombie(game, x, y) {
 	this.maxHealth = 5;
 	this.health = this.maxHealth;
 	this.attackTimer = 90;
-	this.coinWorth = 20;
+	this.coinWorth = 25;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -355,7 +356,7 @@ function Archer(game, x, y) {
     this.maxHealth = 5;
     this.health = this.maxHealth;
     this.attackTimer = 80;
-    this.coinWorth = 40;
+    this.coinWorth = 50;
     //this.damage = 2;
     this.x = x;
     this.y = y;
@@ -471,7 +472,7 @@ function Warrior(game, x, y) {
     this.maxHealth = 20;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 80;
+    this.coinWorth = 100;
     this.damage = 1;
     this.x = x;
     this.y = y;
@@ -585,7 +586,7 @@ function Dude(game, x, y) {
     this.maxHealth = 50;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 100;
+    this.coinWorth = 200;
     this.damage = 5;
     this.x = x;
     this.y = y;
@@ -733,9 +734,9 @@ function Tower(game) {
     this.scale = 1;
     this.placed = false;
     this.showRange = true;
-    this.range = 300;
+    this.range = 200;
     //this.damage = 1;
-    this.attackTimer = 180;
+    this.attackTimer = 60;
 
     this.image = ASSET_MANAGER.getAsset("./img/tower.png");
     Entity.call(this, game, 0, 0);
@@ -750,19 +751,23 @@ Tower.prototype.update = function () {
         var attacked = false;
         this.attackTimer--;
 
+        var closestTarget = { index: null, distance: this.range + 1 };
+
         for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
             var dx = this.buildX + (this.image.width * this.scale / 2) - this.game.monsterEntities[i].x;
             var dy = this.buildY + (this.image.height * this.scale / 2) - this.game.monsterEntities[i].y;
 
             var distance = Math.sqrt(dx * dx + dy * dy);
-            //var distance = Math.sqrt(Math.pow(this.buildX - this.game.monsterEntities[i].x, 2) + Math.pow(this.buildY - this.game.monsterEntities[i].y, 2));
             
-            if (distance <= this.range) {
-                //console.log("Tower Attacking at distance: " + distance);
-                attacked = true;
-                this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale, this.game.monsterEntities[i]));
-                //this.game.monsterEntities[i].health -= this.damage;
+            if (distance <= this.range && distance < closestTarget.distance) {
+                closestTarget.index = i;
+                closestTarget.distance = distance;
             }
+        }
+
+        if (closestTarget.index || closestTarget.index === 0) {
+            attacked = true;
+            this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[closestTarget.index].x + 64 * zScale, this.game.monsterEntities[closestTarget.index].y + 64 * zScale, this.game.monsterEntities[closestTarget.index]));
         }
 
         if (this.attackTimer === 0) this.attackTimer = 120;
@@ -779,8 +784,65 @@ Tower.prototype.draw = function () {
         if (this.showRange) {
             this.game.ctx.beginPath();
             this.game.ctx.save();
-            this.game.ctx.globalAlpha = .5;
-            this.game.ctx.strokeStyle = "red";
+            this.game.ctx.globalAlpha = .3;
+            this.game.ctx.strokeStyle = "white";
+            this.game.ctx.arc(this.buildX + this.image.width / 2, this.buildY + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+            this.game.ctx.stroke();
+            this.game.ctx.closePath();
+            this.game.ctx.restore();
+        }
+    }
+    if (this.game.click && !this.game.mouse) this.placed = true;
+}
+
+function Cannon(game) {
+    this.scale = 1;
+    this.placed = false;
+    this.showRange = true;
+    this.range = 300;
+    this.attackTimer = 180;
+
+    this.image = ASSET_MANAGER.getAsset("./img/cannon.png");
+    Entity.call(this, game, 0, 0);
+}
+
+Cannon.prototype = new Entity();
+Cannon.prototype.constructor = Cannon;
+
+Cannon.prototype.update = function () {
+    if (this.placed && !this.game.gameOver) {
+        var length = this.game.monsterEntities.length;
+        var attacked = false;
+        this.attackTimer--;
+
+        for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
+            var dx = this.buildX + (this.image.width * this.scale / 2) - this.game.monsterEntities[i].x;
+            var dy = this.buildY + (this.image.height * this.scale / 2) - this.game.monsterEntities[i].y;
+
+            var distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance <= this.range) {
+                attacked = true;
+                this.game.addTopEntity(new CannonAttack(this.game, this.buildX + (this.image.width / 2), this.buildY + 5, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale, this.game.monsterEntities[i]));
+            }
+        }
+
+        if (this.attackTimer === 0) this.attackTimer = 120;
+    }
+}
+
+Cannon.prototype.draw = function () {
+    if (this.game.mouse && this.game.isBuilding && !this.placed) {
+        this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
+        this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+    }
+    if (this.buildY && this.buildX) {
+        this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
+        if (this.showRange) {
+            this.game.ctx.beginPath();
+            this.game.ctx.save();
+            this.game.ctx.globalAlpha = .3;
+            this.game.ctx.strokeStyle = "white";
             this.game.ctx.arc(this.buildX + this.image.width / 2, this.buildY + this.image.height / 2, this.range, 0, Math.PI * 2, false);
             this.game.ctx.stroke();
             this.game.ctx.closePath();
@@ -791,8 +853,6 @@ Tower.prototype.draw = function () {
 }
 
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
-    
-    //this.radius = 3;
     this.x = startx;
     this.y = starty;
     this.damage = 1;
@@ -803,6 +863,7 @@ function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
     this.update();
     this.image = this.rotateAndCache(ASSET_MANAGER.getAsset("./img/arrow.png"), this.angle);
     //this.image = new Animation(ASSET_MANAGER.getAsset("./img/arrow.png"), 0, 0, this.image.frameWidth, this.image.frameHeight, 0.025, 1, false, false, this.angle);
+
     Entity.call(this, game, this.x, this.y);
 }
 
@@ -820,9 +881,6 @@ ArrowAttack.prototype.update = function () {
 
     this.angle = -Math.atan2(dx, dy) + Math.PI;
     
-    //console.log("position: " + this.x + ", " + this.y);
-    //console.log("difference: " + dx + ", " + dy);
-    //console.log("distance: " + distance);
     if (distance < 10) {
         if (this.target) {
             this.target.health -= this.damage;
@@ -834,13 +892,50 @@ ArrowAttack.prototype.update = function () {
 }
 
 ArrowAttack.prototype.draw = function () {
-    //this.game.ctx.beginPath();
-    //this.game.ctx.fillStyle = "black";
-    //this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    //this.game.ctx.fill();
-    //this.game.ctx.closePath();
-    //this.image.drawFrame(this.game.clockTick, this.game.ctx, this.x, this.y, this.scale);
     this.game.ctx.drawImage(this.image, this.x - (this.image.width / 2), this.y - (this.image.width / 4), this.image.width, this.image.height);
+}
+
+function CannonAttack(game, startx, starty, targetx, targety, enemy) {
+
+    this.radius = 3;
+    this.x = startx;
+    this.y = starty;
+    this.damage = 2;
+    this.target = enemy;
+    this.targetx = targetx;
+    this.targety = targety;
+    this.speed = 10;
+    this.update();
+
+    Entity.call(this, game, this.x, this.y);
+}
+
+CannonAttack.prototype = new Entity();
+CannonAttack.prototype.constructor = CannonAttack;
+
+CannonAttack.prototype.update = function () {
+    var dx = this.targetx - this.x;
+    var dy = this.targety - this.y;
+
+    var distance = Math.sqrt(dx * dx + dy * dy);
+
+    this.x += (dx / distance) * this.speed;
+    this.y += (dy / distance) * this.speed;
+
+    this.angle = -Math.atan2(dx, dy) + Math.PI;
+
+    if (distance < 10) {
+        this.target.health -= this.damage;
+        this.removeFromWorld = true;
+    }
+}
+
+CannonAttack.prototype.draw = function () {
+    this.game.ctx.beginPath();
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    this.game.ctx.fill();
+    this.game.ctx.closePath();
 }
 
 function Fog(game) {
@@ -868,6 +963,18 @@ StartScreen.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
 }
 
+function GameOverScreen(game) {
+    this.image = ASSET_MANAGER.getAsset("./img/gameoverscreen.png");
+    Entity.call(this, game, 0, 0);
+}
+
+GameOverScreen.prototype = new Entity();
+GameOverScreen.prototype.constructor = GameOverScreen;
+
+GameOverScreen.prototype.draw = function () {
+    this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+}
+
 // the "main" code begins here
 
 var ASSET_MANAGER = new AssetManager();
@@ -877,6 +984,7 @@ ASSET_MANAGER.queueDownload("./img/castle.png");
 ASSET_MANAGER.queueDownload("./img/clickExplode.png");
 ASSET_MANAGER.queueDownload("./img/fog.png");
 ASSET_MANAGER.queueDownload("./img/tower.png");
+ASSET_MANAGER.queueDownload("./img/cannon.png");
 ASSET_MANAGER.queueDownload("./img/towerIcon.png");
 ASSET_MANAGER.queueDownload("./img/archerwalk.png");
 ASSET_MANAGER.queueDownload("./img/archerattack.png");
@@ -887,6 +995,7 @@ ASSET_MANAGER.queueDownload("./img/warriorattack.png");
 ASSET_MANAGER.queueDownload("./img/arrow.png");
 ASSET_MANAGER.queueDownload("./img/prevail.png");
 ASSET_MANAGER.queueDownload("./img/buildbar.png");
+ASSET_MANAGER.queueDownload("./img/gameoverscreen.png");
 
 
 
@@ -897,6 +1006,7 @@ ASSET_MANAGER.downloadAll(function () {
 	
     var gameEngine = new GameEngine();
     gameEngine.startScreen = new StartScreen(gameEngine);
+    gameEngine.gameOverScreen = new GameOverScreen(gameEngine);
     gameEngine.buildBar = ASSET_MANAGER.getAsset("./img/buildbar.png");
 
     var scoreBoard = new ScoreBoard(gameEngine);
