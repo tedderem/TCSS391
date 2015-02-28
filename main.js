@@ -204,7 +204,7 @@ clickExplode.prototype.update = function() {
 	if(this.animation.isDone()) this.removeFromWorld = true;
 }
 
-
+var displayRadius = true;
 
 var zScale = .4;
 globalAngleTolerance = 3;	//angle limit which entities will look the same in degrees
@@ -711,6 +711,7 @@ ScoreBoard.prototype.updateScore = function (amount) {
 }
 
 ScoreBoard.prototype.draw = function () {
+    //display basic information in upper-left (coins/round/health)
 	this.game.ctx.font = "18px Verdana";
 	this.game.ctx.fillStyle = "rgba(255, 255, 255)";
     this.game.ctx.fillText("BitCoins: " + this.score, 2, 17);
@@ -718,8 +719,17 @@ ScoreBoard.prototype.draw = function () {
 	this.game.ctx.fillText("Round: " + this.game.round, 2, 34);
 	this.game.ctx.fillText("Enemies: " + this.game.monsterEntities.length, 2, 51);
 	this.game.ctx.fillStyle = "darkred";
-    this.game.ctx.fillText("Health: " + this.game.castleHealth + "/" + this.game.maxCastleHealth, 2, 68);
-	
+	this.game.ctx.fillText("Health: " + this.game.castleHealth + "/" + this.game.maxCastleHealth, 2, 68);
+
+    //display radius information in the upper-right
+    this.game.ctx.font = "bold 15px Verdana";
+    this.game.ctx.fillStyle = "white";
+    var labelWidth = this.game.ctx.measureText("Radius Display (r)").width;
+    this.game.ctx.fillText("Radius Display (r)", 795 - labelWidth, 17);
+    this.game.ctx.font = "15px Verdana";
+    this.game.ctx.fillStyle = displayRadius ? "green" : "red";
+    var text = displayRadius ? "On" : "Off";
+    this.game.ctx.fillText(text, 795 - (labelWidth / 2) - (this.game.ctx.measureText(text).width / 2), 34);
 }
 
 function Castle(game) {
@@ -741,7 +751,7 @@ Castle.prototype.draw = function () {
 function Tower(game) {  
     this.scale = 1;
     this.placed = false;
-    this.showRange = true;
+    //this.showRange = true;
     this.range = 200;
     //this.damage = 1;
     this.attackTimer = 60;
@@ -778,7 +788,7 @@ Tower.prototype.update = function () {
             this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[closestTarget.index].x + 64 * zScale, this.game.monsterEntities[closestTarget.index].y + 64 * zScale, this.game.monsterEntities[closestTarget.index]));
         }
 
-        if (this.attackTimer === 0) this.attackTimer = 120;
+        if (this.attackTimer === 0) this.attackTimer = 60;
     }
 }
 
@@ -789,7 +799,7 @@ Tower.prototype.draw = function () {
     }
     if (this.buildY && this.buildX) {
         this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
-        if (this.showRange) {
+        if (displayRadius) {
             this.game.ctx.beginPath();
             this.game.ctx.save();
             this.game.ctx.globalAlpha = .3;
@@ -806,7 +816,7 @@ Tower.prototype.draw = function () {
 function Cannon(game) {
     this.scale = 1;
     this.placed = false;
-    this.showRange = true;
+    //this.showRange = true;
     this.range = 300;
     this.attackTimer = 180;
 
@@ -835,7 +845,7 @@ Cannon.prototype.update = function () {
             }
         }
 
-        if (this.attackTimer === 0) this.attackTimer = 120;
+        if (this.attackTimer === 0) this.attackTimer = 180;
     }
 }
 
@@ -846,7 +856,7 @@ Cannon.prototype.draw = function () {
     }
     if (this.buildY && this.buildX) {
         this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
-        if (this.showRange) {
+        if (displayRadius) {
             this.game.ctx.beginPath();
             this.game.ctx.save();
             this.game.ctx.globalAlpha = .3;

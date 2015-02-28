@@ -1,6 +1,6 @@
-// This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
+// This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v0.8.5';
+var version = 'v0.9.0';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -115,6 +115,12 @@ GameEngine.prototype.startInput = function () {
     var that = this;
 
     this.ctx.canvas.addEventListener("keypress", function (e) {
+        //user hit r to toggle radius display
+        if (e.keyCode === 114 && that.gameStarted && !that.gameOver) {
+            //if display radius is on, turn it off. If off, turn on.
+            displayRadius = displayRadius ? false : true;
+        }
+
         //user hit 'x' to cancel building phase
         if (e.keyCode === 120 && that.intermission) {
             that.intermissionCancel = true;
