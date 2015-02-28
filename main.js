@@ -231,7 +231,7 @@ scanRegistry = function(angle, angleTolerance, registry) {
 function Zombie(game, x, y) {    
     this.attacking = false;
     this.radius = 100;
-	this.maxHealth = 5;
+	this.maxHealth = 2;
 	this.health = this.maxHealth;
 	this.attackTimer = 90;
 	this.coinWorth = 25;
