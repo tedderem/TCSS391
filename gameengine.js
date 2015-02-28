@@ -1,6 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
 
-var version = 'v0.8.3';
+var version = 'v0.8.5';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -39,6 +39,7 @@ function GameEngine() {
     this.buildDuration = 60;
     this.intermission = false;
     this.intermissionCancel = false;
+    this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
     this.gameOver = false;
     this.isBuilding = false;
 	this.entities = [];
@@ -102,6 +103,7 @@ GameEngine.prototype.restart = function (entity) {
     this.isBuilding = false;
     this.monsterEntities = [];
     this.topEntities = [];
+    this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
 
     var sb = new ScoreBoard(this);
     this.addScoreBoard(sb);
@@ -116,7 +118,6 @@ GameEngine.prototype.startInput = function () {
         //user hit 'x' to cancel building phase
         if (e.keyCode === 120 && that.intermission) {
             that.intermissionCancel = true;
-            console.log("intermission canceled");
         }
         //user hit enter to start game
         if (e.keyCode === 13 && !that.gameStarted) {
@@ -321,12 +322,11 @@ GameEngine.prototype.checkRound = function () {
         this.ctx.save();
         this.ctx.font = "bold 40px arial";
         this.ctx.fillStyle = "white";
-        this.ctx.fillText("Build & Repair!", 275, 115);
+        this.ctx.fillText("Build & Repair!", 400 - this.ctx.measureText("Build & Repair!").width / 2, 115);
         var time = Math.floor((Date.now() - this.startTime) / 1000);
         this.ctx.font = "bold 60px arial";
         if (time >= this.buildDuration - 5) this.ctx.fillStyle = "red";
-        var offset = time > this.buildDuration - 10 ? 10 : 0;
-        this.ctx.fillText(this.buildDuration - time, 375 + offset, 175);
+        this.ctx.fillText(this.buildDuration - time, 400 - this.ctx.measureText(this.buildDuration - time).width / 2, 175);
         
         this.ctx.restore();
 

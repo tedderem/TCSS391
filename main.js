@@ -297,6 +297,7 @@ Zombie.prototype.update = function () {
 	    this.game.scoreBoard.updateScore(this.coinWorth);
 	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2), null, true));
 	    this.removeFromWorld = true;
+	    this.game.monstersKilled.zombies++;
 		//add animations to respective registries if there is space and the animation is completely cached
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieWalkRegistry) === -1) {
 			zombieWalkRegistry.push(this.animation);
@@ -413,6 +414,7 @@ Archer.prototype.update = function () {
         this.game.scoreBoard.updateScore(this.coinWorth);
         this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
         this.removeFromWorld = true;
+        this.game.monstersKilled.archers++;
 		
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerWalkRegistry) === -1) {
 			archerWalkRegistry.push(this.animation);
@@ -526,6 +528,8 @@ Warrior.prototype.update = function () {
         this.game.scoreBoard.updateScore(this.coinWorth);
         this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
         this.removeFromWorld = true;
+        this.game.monstersKilled.warriors++;
+
         //add animations to respective registries if there is space and the animation is completely cached
         if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorWalkRegistry) === -1) {
             warriorWalkRegistry.push(this.animation);
@@ -640,6 +644,8 @@ Dude.prototype.update = function () {
         this.game.scoreBoard.updateScore(this.coinWorth);
         this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
         this.removeFromWorld = true;
+        this.game.monstersKilled.berserkers++;
+
         //add animations to respective registries if there is space and the animation is completely cached
         if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorWalkRegistry) === -1) {
             warriorWalkRegistry.push(this.animation);
@@ -690,7 +696,8 @@ Dude.prototype.draw = function (ctx) {
 }
 
 function ScoreBoard(game) {
-	this.score = 0;
+    this.score = 0;
+    this.lifetimeScore = 0;
 	
 	Entity.call(this, game, 180, 17);
 }
@@ -699,7 +706,8 @@ ScoreBoard.prototype = new Entity();
 ScoreBoard.prototype.constructor = ScoreBoard;
 
 ScoreBoard.prototype.updateScore = function (amount) {
-	this.score += amount;
+    this.score += amount;
+    if (amount > 0) this.lifetimeScore += amount;
 }
 
 ScoreBoard.prototype.draw = function () {
@@ -972,7 +980,35 @@ GameOverScreen.prototype = new Entity();
 GameOverScreen.prototype.constructor = GameOverScreen;
 
 GameOverScreen.prototype.draw = function () {
+    //draw background image
     this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+    this.game.ctx.save();
+    //create transparent black box to hold game data
+    this.game.ctx.globalAlpha = .5;
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.fillRect(100, 200, 600, 400);
+    this.game.ctx.restore();
+    this.game.ctx.font = "bold 30px Verdana";
+    this.game.ctx.fillStyle = "white";
+    //display statistics header centered
+    this.game.ctx.fillText("Statistics:", 400 - this.game.ctx.measureText("Statistics:").width / 2, 250);
+    this.game.ctx.font = "20px Verdana";
+    //display round, bitcoins, and lifetime bitcoins centered
+    this.game.ctx.fillText("Round:  " + this.game.round, 400 - this.game.ctx.measureText("Round:  " + this.game.round).width / 2, 300);
+    this.game.ctx.fillText("BitCoins:  " + this.game.scoreBoard.score, 400 - this.game.ctx.measureText("BitCoins:  " + this.game.scoreBoard.score).width / 2, 325);
+    this.game.ctx.fillText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore, 400 - this.game.ctx.measureText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore).width / 2, 350);
+    //calculate total monsters killed
+    var totalmonsters = this.game.monstersKilled.zombies + this.game.monstersKilled.archers + this.game.monstersKilled.warriors + this.game.monstersKilled.berserkers;
+    this.game.ctx.font = "Bold 25px Verdana";
+    //display total enemies killed 
+    this.game.ctx.fillText("Enemies Killed - " + totalmonsters, 400 - this.game.ctx.measureText("Enemies Killed - " + totalmonsters).width / 2, 400);
+    this.game.ctx.font = "20px Verdana";
+    //display detailed enemy killed info
+    this.game.ctx.fillText("Zombies: " + this.game.monstersKilled.zombies, 400 - this.game.ctx.measureText("Zombies: " + this.game.monstersKilled.zombies).width / 2, 450);
+    this.game.ctx.fillText("Archers: " + this.game.monstersKilled.archers, 400 - this.game.ctx.measureText("Archers: " + this.game.monstersKilled.archers).width / 2, 475);
+    this.game.ctx.fillText("Warriors: " + this.game.monstersKilled.warriors, 400 - this.game.ctx.measureText("Warriors: " + this.game.monstersKilled.warriors).width / 2, 500);
+    this.game.ctx.fillText("Berserkers: " + this.game.monstersKilled.berserkers, 400 - this.game.ctx.measureText("Berserkers: " + this.game.monstersKilled.berserkers).width / 2, 525);
+
 }
 
 // the "main" code begins here
