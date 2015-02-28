@@ -230,6 +230,7 @@ scanRegistry = function(angle, angleTolerance, registry) {
 
 function Zombie(game, x, y) {    
     this.attacking = false;
+    this.scale = .4;
     this.radius = 100;
 	this.maxHealth = 2;
 	this.health = this.maxHealth;
@@ -262,7 +263,7 @@ function Zombie(game, x, y) {
 	}
 	*/
 	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle, zombieWalkRegistry);
-    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
+	this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
 
 
     Entity.call(this, game, this.x, this.y);
@@ -277,35 +278,31 @@ Zombie.prototype.update = function () {
 	//user clicked on the screen
 	if (this.game.click && !this.game.gameOver) { 		
 		//calculate the difference in x and y of the click to this entity's x/y
-		var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * zScale)));
-		var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * zScale)));
+	    var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
+	    var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 		
-		//see if the difference is within a certain range (30 in this case)
-		//Multiplies by the zScale to ensure it fluctuates with size
-		if (diffx <= (70 * zScale) && diffy <= (70 * zScale) || this.game.click.shiftKey) {
+		//see if the difference is within a certain range
+	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
 			//decrement health
 			this.health--;
 			//add new message entity to the game
 			if (this.health > 0){
 				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
-				//zombie is not dead
 			}
 		}
 	}
 
 	if (this.health <= 0) {
 	    this.game.scoreBoard.updateScore(this.coinWorth);
-	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * zScale / 2), null, true));
+	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
 	    this.removeFromWorld = true;
 	    this.game.monstersKilled.zombies++;
 		//add animations to respective registries if there is space and the animation is completely cached
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieWalkRegistry) === -1) {
 			zombieWalkRegistry.push(this.animation);
-			//console.log(zombieWalkRegistry.length);
 		}
 		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieAttackRegistry) === -1) {
 			zombieAttackRegistry.push(this.attackingAnimation);
-			//console.log(zombieAttackRegistry.length);
 		}
 	}
 	
@@ -328,10 +325,7 @@ Zombie.prototype.update = function () {
 		    
         } else {
             this.attacking = true;
-            //console.log(this.x + " " + this.y);
-            //console.log(this.toCollide);
         }
-		/*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
 	}
 	
     Entity.prototype.update.call(this);
@@ -339,9 +333,9 @@ Zombie.prototype.update = function () {
 
 Zombie.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
     } else {
-        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, zScale);
+        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
     }
 	
     Entity.prototype.draw.call(this);
@@ -358,7 +352,6 @@ function Archer(game, x, y) {
     this.health = this.maxHealth;
     this.attackTimer = 80;
     this.coinWorth = 50;
-    //this.damage = 2;
     this.x = x;
     this.y = y;
     this.targetX = 370;
@@ -395,8 +388,7 @@ Archer.prototype.update = function () {
         var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
-        //see if the difference is within a certain range (30 in this case)
-        //Multiplies by the zScale to ensure it fluctuates with size
+        //see if the difference is within a certain range
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
@@ -406,7 +398,6 @@ Archer.prototype.update = function () {
 							this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
 				
 			}
-            //zombie is dead
         }
     }
 
@@ -418,15 +409,13 @@ Archer.prototype.update = function () {
 		
 		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerWalkRegistry) === -1) {
 			archerWalkRegistry.push(this.animation);
-			//console.log(archerWalkRegistry.length);
 		}
 		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerAttackRegistry) === -1) {
 			archerAttackRegistry.push(this.attackingAnimation);
-			//console.log(archerAttackRegistry.length);
 		}
     }
 
-    //if/else to manage attack animation reset and movement of zombie
+    //if/else to manage attack animation reset and movement of monster
     if (this.attacking) {
         this.attackTimer--;
          if (this.attackingAnimation.isDone()) {
@@ -434,21 +423,17 @@ Archer.prototype.update = function () {
             this.animation.elapsedTime = 0;
          }
          if (this.attackTimer === 0) {
-             this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth * this.scale / 2), this.y + (this.attackingAnimation.frameHeight * this.scale / 2), 400, 400));
-            //this.game.castleHealth -= this.damage;
+            this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth * this.scale / 2), this.y + (this.attackingAnimation.frameHeight * this.scale / 2), 400, 400));
             this.attackTimer = 60;
          }
         } else {
             if (this.toCollide > this.range) {
-            //this.y -= (.5 * zScale);
             this.y += this.unitY * this.speed;
             this.x += this.unitX * this.speed;
             this.toCollide--;
-            //console.log(this.x + " " + this.y);
         } else {
             this.attacking = true;
         }
-        /*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
     }
 
     Entity.prototype.update.call(this);
@@ -471,7 +456,7 @@ function Warrior(game, x, y) {
     this.scale = .5;
     this.attacking = false;
     this.radius = 100;
-    this.maxHealth = 20;
+    this.maxHealth = 10;
     this.health = this.maxHealth;
     this.attackTimer = 50;
     this.coinWorth = 100;
@@ -511,15 +496,13 @@ Warrior.prototype.update = function () {
         var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
-        //see if the difference is within a certain range (30 in this case)
-        //Multiplies by the zScale to ensure it fluctuates with size
+        //see if the difference is within a certain range
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
             //add new message entity to the game
             if (this.health > 0) {
                 this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
-                //zombie is not dead
             }
         }
     }
@@ -533,15 +516,13 @@ Warrior.prototype.update = function () {
         //add animations to respective registries if there is space and the animation is completely cached
         if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorWalkRegistry) === -1) {
             warriorWalkRegistry.push(this.animation);
-            //console.log(zombieWalkRegistry.length);
         }
         if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorAttackRegistry) === -1) {
             warriorAttackRegistry.push(this.attackingAnimation);
-            //console.log(zombieAttackRegistry.length);
         }
     }
 
-    //if/else to manage attack animation reset and movement of zombie
+    //if/else to manage attack animation reset and movement of monster
     if (this.attacking) {
         this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
@@ -560,10 +541,7 @@ Warrior.prototype.update = function () {
 
         } else {
             this.attacking = true;
-            //console.log(this.x + " " + this.y);
-            //console.log(this.toCollide);
         }
-        /*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
     }
 
     Entity.prototype.update.call(this);
@@ -583,14 +561,14 @@ dudeWalkRegistry = [];
 dudeAttackRegistry = [];
 
 //Mercenary enemy, larger and hits harder
-function Dude(game, x, y) {
+function Berserker(game, x, y) {
     this.scale = .6;
     this.attacking = false;
     this.radius = 100;
-    this.maxHealth = 50;
+    this.maxHealth = 40;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 200;
+    this.coinWorth = 250;
     this.damage = 5;
     this.x = x;
     this.y = y;
@@ -610,32 +588,30 @@ function Dude(game, x, y) {
     this.range = 75 / this.speed;
     this.toCollide = (magnitude) / this.speed;//steps to hit castle
 
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudewalk.png"), 0, 0, 127, 127, 0.1, 24, true, false, this.angle, warriorWalkRegistry);
-    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudeattack.png"), 0, 0, 192, 191, 0.15, 30, true, false, this.angle, warriorAttackRegistry);
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudewalk.png"), 0, 0, 127, 127, 0.1, 24, true, false, this.angle, dudeWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudeattack.png"), 0, 0, 192, 191, 0.15, 30, true, false, this.angle, dudeAttackRegistry);
 
 
     Entity.call(this, game, this.x, this.y);
 }
 
-Dude.prototype = new Entity();
-Dude.prototype.constructor = Dude;
+Berserker.prototype = new Entity();
+Berserker.prototype.constructor = Berserker;
 
-Dude.prototype.update = function () {
+Berserker.prototype.update = function () {
     //user clicked on the screen
     if (this.game.click && !this.game.gameOver) {
         //calculate the difference in x and y of the click to this entity's x/y
         var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
-        //see if the difference is within a certain range (30 in this case)
-        //Multiplies by the zScale to ensure it fluctuates with size
+        //see if the difference is within a certain range
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
             //add new message entity to the game
             if (this.health > 0) {
                 this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
-                //zombie is not dead
             }
         }
     }
@@ -647,17 +623,15 @@ Dude.prototype.update = function () {
         this.game.monstersKilled.berserkers++;
 
         //add animations to respective registries if there is space and the animation is completely cached
-        if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorWalkRegistry) === -1) {
-            warriorWalkRegistry.push(this.animation);
-            //console.log(zombieWalkRegistry.length);
+        if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, dudeWalkRegistry) === -1) {
+            dudeWalkRegistry.push(this.animation);
         }
-        if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorAttackRegistry) === -1) {
-            warriorAttackRegistry.push(this.attackingAnimation);
-            //console.log(zombieAttackRegistry.length);
+        if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, dudeAttackRegistry) === -1) {
+            dudeAttackRegistry.push(this.attackingAnimation);
         }
     }
 
-    //if/else to manage attack animation reset and movement of zombie
+    //if/else to manage attack animation reset and movement of monster
     if (this.attacking) {
         this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
@@ -676,16 +650,13 @@ Dude.prototype.update = function () {
 
         } else {
             this.attacking = true;
-            //console.log(this.x + " " + this.y);
-            //console.log(this.toCollide);
         }
-        /*if (this.y < (400)) this.y = this.game.ctx.canvas.height + (128 * zScale);*/
     }
 
     Entity.prototype.update.call(this);
 }
 
-Dude.prototype.draw = function (ctx) {
+Berserker.prototype.draw = function (ctx) {
     if (this.attacking) {
         this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 30, this.y - 30, this.scale);
     } else {
@@ -723,7 +694,7 @@ ScoreBoard.prototype.draw = function () {
 
     //display radius information in the upper-right
     this.game.ctx.font = "bold 15px Verdana";
-    this.game.ctx.fillStyle = "white";
+    this.game.ctx.fillStyle = "black";
     var labelWidth = this.game.ctx.measureText("Radius Display (r)").width;
     this.game.ctx.fillText("Radius Display (r)", 795 - labelWidth, 17);
     this.game.ctx.font = "15px Verdana";
@@ -754,7 +725,7 @@ function Tower(game) {
     //this.showRange = true;
     this.range = 200;
     //this.damage = 1;
-    this.attackTimer = 60;
+    this.attackTimer = 90;
 
     this.image = ASSET_MANAGER.getAsset("./img/tower.png");
     Entity.call(this, game, 0, 0);
@@ -766,15 +737,14 @@ Tower.prototype.constructor = Tower;
 Tower.prototype.update = function () {
     if (this.placed && !this.game.gameOver) {
         var length = this.game.monsterEntities.length;
-        var attacked = false;
         this.attackTimer--;
 
         var closestTarget = { index: null, distance: this.range + 1 };
 
-        for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
-            var dx = this.buildX + (this.image.width * this.scale / 2) - this.game.monsterEntities[i].x;
-            var dy = this.buildY + (this.image.height * this.scale / 2) - this.game.monsterEntities[i].y;
-
+        for (var i = 0; i < length && this.attackTimer <= 0; i++) {
+            var dx = this.buildX + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
+            var dy = this.buildY + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
+            
             var distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance <= this.range && distance < closestTarget.distance) {
@@ -784,11 +754,13 @@ Tower.prototype.update = function () {
         }
 
         if (closestTarget.index || closestTarget.index === 0) {
-            attacked = true;
-            this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, this.game.monsterEntities[closestTarget.index].x + 64 * zScale, this.game.monsterEntities[closestTarget.index].y + 64 * zScale, this.game.monsterEntities[closestTarget.index]));
+            var targetLoc = {};
+            targetLoc.x = this.game.monsterEntities[closestTarget.index].x + (this.game.monsterEntities[closestTarget.index].animation.frameWidth * this.game.monsterEntities[closestTarget.index].scale / 2);
+            targetLoc.y = this.game.monsterEntities[closestTarget.index].y + (this.game.monsterEntities[closestTarget.index].animation.frameHeight * this.game.monsterEntities[closestTarget.index].scale / 2);
+            this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[closestTarget.index]));
         }
 
-        if (this.attackTimer === 0) this.attackTimer = 60;
+        if (this.attackTimer === 0) this.attackTimer = 90;
     }
 }
 
@@ -834,14 +806,17 @@ Cannon.prototype.update = function () {
         this.attackTimer--;
 
         for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
-            var dx = this.buildX + (this.image.width * this.scale / 2) - this.game.monsterEntities[i].x;
-            var dy = this.buildY + (this.image.height * this.scale / 2) - this.game.monsterEntities[i].y;
+            var dx = this.buildX + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
+            var dy = this.buildY + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
 
             var distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance <= this.range) {
                 attacked = true;
-                this.game.addTopEntity(new CannonAttack(this.game, this.buildX + (this.image.width / 2), this.buildY + 5, this.game.monsterEntities[i].x + 64 * zScale, this.game.monsterEntities[i].y + 64 * zScale, this.game.monsterEntities[i]));
+                var targetLoc = {};
+                targetLoc.x = this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2);
+                targetLoc.y = this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2);
+                this.game.addTopEntity(new CannonAttack(this.game, this.buildX + 20, this.buildY + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[i]));
             }
         }
 

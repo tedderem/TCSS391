@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v0.9.0';
+var version = 'v0.9.1';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -306,7 +306,7 @@ GameEngine.prototype.populate = function () {
             //50 percent chance that he will spawn
 	        if (Math.random() < .5) {
 	            var coords = CalcCoords();
-	            this.addMonsterEntity(new Dude(this, coords.x, coords.y));
+	            this.addMonsterEntity(new Berserker(this, coords.x, coords.y));
             }
 	    }
 	}
