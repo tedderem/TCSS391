@@ -36,7 +36,7 @@ function GameEngine() {
     this.castleHealth = 100;
     this.maxCastleHealth = 100;
     this.speedModifier = 1;
-    this.buildDuration = 60;
+    this.buildDuration = 30;
     this.intermission = false;
     this.intermissionCancel = false;
     this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
@@ -141,6 +141,12 @@ GameEngine.prototype.startInput = function () {
             that.scoreBoard.updateScore(-500);
             that.maxCastleHealth += 50;
         }
+
+        //Developer keypress 'd' for stress-testing +10 levels and 50k coins (can be spammed)
+        //if (e.keyCode === 100) {
+        //    that.scoreBoard.updateScore(50000);
+        //    that.round += 10;
+        //}
         //user hit 3 to create archer tower
         if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
             that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
@@ -284,7 +290,7 @@ GameEngine.prototype.populate = function () {
 	    var firstLocValue = [-400, 400];
 	    var secondLocValue = [-200, 800];
         //Spawn zombies
-	    for (var i = 0; i < this.round * 1; i++) {
+	    for (var i = 0; i < this.round * 2; i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
 	    }

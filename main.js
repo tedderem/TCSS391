@@ -282,7 +282,7 @@ Zombie.prototype.update = function () {
 	    var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 		
 		//see if the difference is within a certain range
-	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
+	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
 			//decrement health
 			this.health--;
 			//add new message entity to the game
@@ -389,7 +389,7 @@ Archer.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
             //add new message entity to the game
@@ -497,7 +497,7 @@ Warrior.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
             //add new message entity to the game
@@ -606,7 +606,7 @@ Berserker.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
             //add new message entity to the game
