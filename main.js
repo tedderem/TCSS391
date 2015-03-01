@@ -180,7 +180,11 @@ Message.prototype.draw = function () {
 }
 
 function clickExplode(game) {
-	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/clickExplode.png"), 0, 0, 66.7, 66.7, 0.03, 32, false, false);
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/clickExplode.png"), 0, 0, 66.7, 66.7, 0.03, 32, false, false);
+    var sound = new Audio("./audio/boom.wav");
+
+    sound.volume = .15;
+    if (!game.music.isMute) sound.play();
 	this.game = game;
 	this.x = -200;
 	this.y = -200;
@@ -284,7 +288,8 @@ Zombie.prototype.update = function () {
 		//see if the difference is within a certain range
 	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
 			//decrement health
-			this.health--;
+	        this.health--;
+	        this.game.addTopEntity(new clickExplode(this.game));
 			//add new message entity to the game
 			if (this.health > 0){
 				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
@@ -307,7 +312,8 @@ Zombie.prototype.update = function () {
 	}
 	
 	//if/else to manage attack animation reset and movement of zombie
-    if (this.attacking) {
+	if (this.attacking) {
+	    new AttackSound(this.game);
 		this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
             this.attackingAnimation.elapsedTime = 0;
@@ -392,6 +398,7 @@ Archer.prototype.update = function () {
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
+            this.game.addTopEntity(new clickExplode(this.game));
             //add new message entity to the game
             if (this.health > 0) {
 				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + 
@@ -500,6 +507,7 @@ Warrior.prototype.update = function () {
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
+            this.game.addTopEntity(new clickExplode(this.game));
             //add new message entity to the game
             if (this.health > 0) {
                 this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
@@ -524,6 +532,7 @@ Warrior.prototype.update = function () {
 
     //if/else to manage attack animation reset and movement of monster
     if (this.attacking) {
+        new AttackSound(this.game);
         this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
             this.attackingAnimation.elapsedTime = 0;
@@ -609,6 +618,7 @@ Berserker.prototype.update = function () {
         if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
             //decrement health
             this.health--;
+            this.game.addTopEntity(new clickExplode(this.game));
             //add new message entity to the game
             if (this.health > 0) {
                 this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
@@ -633,6 +643,7 @@ Berserker.prototype.update = function () {
 
     //if/else to manage attack animation reset and movement of monster
     if (this.attacking) {
+        new AttackSound(this.game);
         this.attackTimer--;
         if (this.attackingAnimation.isDone()) {
             this.attackingAnimation.elapsedTime = 0;
@@ -669,12 +680,23 @@ Berserker.prototype.draw = function (ctx) {
 function ScoreBoard(game) {
     this.score = 0;
     this.lifetimeScore = 0;
-	
+
+    this.soundOn = ASSET_MANAGER.getAsset("./img/soundon.png");
+    this.soundOff = ASSET_MANAGER.getAsset("./img/soundoff.png");
+
 	Entity.call(this, game, 180, 17);
 }
 
 ScoreBoard.prototype = new Entity();
 ScoreBoard.prototype.constructor = ScoreBoard;
+
+ScoreBoard.prototype.update = function () {
+    if (this.game.click) {
+        if (this.game.click.layerX >= 795 - this.soundOn.width * .5 && this.game.click.layerX <= 795 && this.game.click.layerY >= 2 && this.game.click.layerY <= 2 + this.soundOn.height * .5) {
+            this.game.music.mute();
+        }
+    }
+}
 
 ScoreBoard.prototype.updateScore = function (amount) {
     this.score += amount;
@@ -696,11 +718,18 @@ ScoreBoard.prototype.draw = function () {
     this.game.ctx.font = "bold 15px Verdana";
     this.game.ctx.fillStyle = "black";
     var labelWidth = this.game.ctx.measureText("Radius Display (r)").width;
-    this.game.ctx.fillText("Radius Display (r)", 795 - labelWidth, 17);
+    this.game.ctx.fillText("Radius Display (r)", 790 - labelWidth - this.soundOn.width * .5, 16);
     this.game.ctx.font = "15px Verdana";
     this.game.ctx.fillStyle = displayRadius ? "green" : "red";
     var text = displayRadius ? "On" : "Off";
-    this.game.ctx.fillText(text, 795 - (labelWidth / 2) - (this.game.ctx.measureText(text).width / 2), 34);
+    this.game.ctx.fillText(text, 790 - (labelWidth / 2) - (this.game.ctx.measureText(text).width / 2) - this.soundOn.width * .5, 32);
+
+    //display sound/mute information
+    if (!this.game.music.isMute) {
+        this.game.ctx.drawImage(this.soundOn, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
+    } else {
+        this.game.ctx.drawImage(this.soundOff, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
+    }
 }
 
 function Castle(game) {
@@ -781,8 +810,10 @@ Tower.prototype.draw = function () {
             this.game.ctx.closePath();
             this.game.ctx.restore();
         }
+
+        if (this.game.click && !this.game.mouse) this.placed = true;
     }
-    if (this.game.click && !this.game.mouse) this.placed = true;
+    
 }
 
 function Cannon(game) {
@@ -841,11 +872,19 @@ Cannon.prototype.draw = function () {
             this.game.ctx.closePath();
             this.game.ctx.restore();
         }
+
+        if (this.game.click && !this.game.mouse) this.placed = true;
     }
-    if (this.game.click && !this.game.mouse) this.placed = true;
+    
 }
 
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
+    //var sound = ASSET_MANAGER.getAsset("./audio/arrow.mp3");
+    var sound = new Audio("./audio/arrow.mp3");
+    sound.volume = .15;
+
+    if (!game.music.isMute && enemy) sound.play();
+
     this.x = startx;
     this.y = starty;
     this.damage = 1;
@@ -889,6 +928,10 @@ ArrowAttack.prototype.draw = function () {
 }
 
 function CannonAttack(game, startx, starty, targetx, targety, enemy) {
+    var sound = new Audio("./audio/cannon.mp3");
+    sound.volume = .15;
+
+    if (!game.music.isMute && enemy) sound.play();
 
     this.radius = 3;
     this.x = startx;
@@ -968,6 +1011,7 @@ GameOverScreen.prototype.draw = function () {
     //draw background image
     this.game.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     this.game.ctx.save();
+
     //create transparent black box to hold game data
     this.game.ctx.globalAlpha = .5;
     this.game.ctx.fillStyle = "black";
@@ -975,6 +1019,7 @@ GameOverScreen.prototype.draw = function () {
     this.game.ctx.restore();
     this.game.ctx.font = "bold 30px Verdana";
     this.game.ctx.fillStyle = "white";
+
     //display statistics header centered
     this.game.ctx.fillText("Statistics:", 400 - this.game.ctx.measureText("Statistics:").width / 2, 250);
     this.game.ctx.font = "20px Verdana";
@@ -982,12 +1027,15 @@ GameOverScreen.prototype.draw = function () {
     this.game.ctx.fillText("Round:  " + this.game.round, 400 - this.game.ctx.measureText("Round:  " + this.game.round).width / 2, 300);
     this.game.ctx.fillText("BitCoins:  " + this.game.scoreBoard.score, 400 - this.game.ctx.measureText("BitCoins:  " + this.game.scoreBoard.score).width / 2, 325);
     this.game.ctx.fillText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore, 400 - this.game.ctx.measureText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore).width / 2, 350);
+
     //calculate total monsters killed
     var totalmonsters = this.game.monstersKilled.zombies + this.game.monstersKilled.archers + this.game.monstersKilled.warriors + this.game.monstersKilled.berserkers;
     this.game.ctx.font = "Bold 25px Verdana";
+
     //display total enemies killed 
     this.game.ctx.fillText("Enemies Killed - " + totalmonsters, 400 - this.game.ctx.measureText("Enemies Killed - " + totalmonsters).width / 2, 400);
     this.game.ctx.font = "20px Verdana";
+
     //display detailed enemy killed info
     this.game.ctx.fillText("Zombies: " + this.game.monstersKilled.zombies, 400 - this.game.ctx.measureText("Zombies: " + this.game.monstersKilled.zombies).width / 2, 450);
     this.game.ctx.fillText("Archers: " + this.game.monstersKilled.archers, 400 - this.game.ctx.measureText("Archers: " + this.game.monstersKilled.archers).width / 2, 475);
@@ -996,27 +1044,73 @@ GameOverScreen.prototype.draw = function () {
 
 }
 
+function Music() {
+    //music named "Dark Music - Nocturnus" by Adrian von Ziegler on YouTube
+    this.music = ASSET_MANAGER.getAsset("./audio/music.mp3");
+    //this.music = new Audio(this.source);
+    this.initVolume = .25;
+
+    this.music.volume = this.initVolume;
+    this.music.loop = true;
+    this.music.play();
+
+    this.isMute = false;
+}
+
+//function to check the current time of the music and to set it the end once the music is within 7 seconds of finishing
+Music.prototype.checkDuration = function () {
+    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? this.music.duration : this.music.currentTime;
+}
+
+Music.prototype.mute = function() {
+    this.isMute = !this.isMute;
+
+    //change volume based on mute
+    if (this.isMute) {
+        this.music.volume = 0;
+    } else {
+        this.music.volume = this.initVolume;
+    }
+}
+
+function AttackSound(game) {
+    var sound = ASSET_MANAGER.getAsset("./audio/monsterattack.mp3");
+    sound.volume = .35;
+
+    if (!game.music.isMute) sound.play();
+}
+
 // the "main" code begins here
 
 var ASSET_MANAGER = new AssetManager();
 
-ASSET_MANAGER.queueDownload("./img/zombie.png");
-ASSET_MANAGER.queueDownload("./img/castle.png");
-ASSET_MANAGER.queueDownload("./img/clickExplode.png");
-ASSET_MANAGER.queueDownload("./img/fog.png");
-ASSET_MANAGER.queueDownload("./img/tower.png");
-ASSET_MANAGER.queueDownload("./img/cannon.png");
-ASSET_MANAGER.queueDownload("./img/towerIcon.png");
-ASSET_MANAGER.queueDownload("./img/archerwalk.png");
-ASSET_MANAGER.queueDownload("./img/archerattack.png");
-ASSET_MANAGER.queueDownload("./img/bigdudewalk.png");
-ASSET_MANAGER.queueDownload("./img/bigdudeattack.png");
-ASSET_MANAGER.queueDownload("./img/warriorwalk.png");
-ASSET_MANAGER.queueDownload("./img/warriorattack.png");
-ASSET_MANAGER.queueDownload("./img/arrow.png");
-ASSET_MANAGER.queueDownload("./img/prevail.png");
-ASSET_MANAGER.queueDownload("./img/buildbar.png");
-ASSET_MANAGER.queueDownload("./img/gameoverscreen.png");
+//Queue all Images
+ASSET_MANAGER.queueImageDownload("./img/zombie.png");
+ASSET_MANAGER.queueImageDownload("./img/castle.png");
+ASSET_MANAGER.queueImageDownload("./img/clickExplode.png");
+ASSET_MANAGER.queueImageDownload("./img/fog.png");
+ASSET_MANAGER.queueImageDownload("./img/tower.png");
+ASSET_MANAGER.queueImageDownload("./img/cannon.png");
+ASSET_MANAGER.queueImageDownload("./img/towerIcon.png");
+ASSET_MANAGER.queueImageDownload("./img/archerwalk.png");
+ASSET_MANAGER.queueImageDownload("./img/archerattack.png");
+ASSET_MANAGER.queueImageDownload("./img/bigdudewalk.png");
+ASSET_MANAGER.queueImageDownload("./img/bigdudeattack.png");
+ASSET_MANAGER.queueImageDownload("./img/warriorwalk.png");
+ASSET_MANAGER.queueImageDownload("./img/warriorattack.png");
+ASSET_MANAGER.queueImageDownload("./img/arrow.png");
+ASSET_MANAGER.queueImageDownload("./img/prevail.png");
+ASSET_MANAGER.queueImageDownload("./img/buildbar.png");
+ASSET_MANAGER.queueImageDownload("./img/gameoverscreen.png");
+ASSET_MANAGER.queueImageDownload("./img/soundon.png");
+ASSET_MANAGER.queueImageDownload("./img/soundoff.png");
+
+//Queue all sounds
+ASSET_MANAGER.queueAudioDownload("./audio/music.mp3");
+ASSET_MANAGER.queueAudioDownload("./audio/boom.wav");
+ASSET_MANAGER.queueAudioDownload("./audio/arrow.mp3");
+ASSET_MANAGER.queueAudioDownload("./audio/cannon.mp3");
+ASSET_MANAGER.queueAudioDownload("./audio/monsterattack.mp3");
 
 
 
@@ -1035,6 +1129,8 @@ ASSET_MANAGER.downloadAll(function () {
     gameEngine.fog = new Fog(gameEngine);
     //gameEngine.addEntity(scoreBoard);
     gameEngine.addEntity(new Castle(gameEngine));
+
+    gameEngine.addMusic(new Music());
     
 	gameEngine.init(ctx);
 	gameEngine.start();

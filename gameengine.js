@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v0.9.1';
+var version = 'v1.0.0';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -76,6 +76,10 @@ GameEngine.prototype.start = function () {
     })();
 }
 
+GameEngine.prototype.addMusic = function (music) {
+    this.music = music;
+}
+
 GameEngine.prototype.addTopEntity = function (entity) {
     //console.log('added message');
     this.topEntities.push(entity);
@@ -115,6 +119,7 @@ GameEngine.prototype.startInput = function () {
     var that = this;
 
     this.ctx.canvas.addEventListener("keypress", function (e) {
+        e.preventDefault();
         //user hit r to toggle radius display
         if (e.keyCode === 114 && that.gameStarted && !that.gameOver) {
             //if display radius is on, turn it off. If off, turn on.
@@ -142,8 +147,9 @@ GameEngine.prototype.startInput = function () {
             that.maxCastleHealth += 50;
         }
 
-        //Developer keypress 'd' for stress-testing +10 levels and 50k coins (can be spammed)
-        //if (e.keyCode === 100) {
+        //Developer keypress '0' for stress-testing +10 levels and 50k coins (can be spammed)
+        //if (e.keyCode === 48) {
+        //    that.monsterEntities = [];
         //    that.scoreBoard.updateScore(50000);
         //    that.round += 10;
         //}
@@ -169,7 +175,6 @@ GameEngine.prototype.startInput = function () {
         } else if (e.keyCode === 53 && that.intermission && that.speedModifier !== 1) {
             that.addTopEntity(new Message(that, "Bog already purchased", 275, 550, "red", false, 2, "Bold 15pt"));
         }
-        e.preventDefault();
     }, false);
     
 
@@ -180,8 +185,11 @@ GameEngine.prototype.startInput = function () {
     this.ctx.canvas.addEventListener("click", function (e) {
         //console.log(e.layerX + ", " + e.layerY);
         that.click = e;
+        that.scoreBoard.update();
         if (!that.isBuilding) {
-            if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) that.addTopEntity(new clickExplode(that));
+            //if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) {
+            //    that.addTopEntity(new clickExplode(that));
+            //}
         } else {
             that.isBuilding = false;
             that.mouse = null;
@@ -315,10 +323,12 @@ GameEngine.prototype.populate = function () {
 	            this.addMonsterEntity(new Berserker(this, coords.x, coords.y));
             }
 	    }
-	}
+	}    
+}
 
-	
-    
+GameEngine.prototype.endGame = function () {
+    this.monsterEntities = [];
+    this.topEntities = [];
 }
 
 GameEngine.prototype.checkRound = function () {
@@ -349,6 +359,7 @@ GameEngine.prototype.checkRound = function () {
 
 GameEngine.prototype.loop = function () {
     this.clockTick = this.timer.tick();
+    this.music.checkDuration();
     if (this.gameStarted && !this.gameOver) {
         this.ctx.save();
         this.update();        
@@ -385,6 +396,7 @@ GameEngine.prototype.loop = function () {
         this.startScreen.draw();
         this.ctx.restore();
     } else if (this.gameOver) {
+        this.endGame();
         this.ctx.save();
         this.update();
         this.gameOverScreen.draw();
