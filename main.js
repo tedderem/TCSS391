@@ -183,7 +183,7 @@ function clickExplode(game) {
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/clickExplode.png"), 0, 0, 66.7, 66.7, 0.03, 32, false, false);
     var sound = new Audio("./audio/boom.wav");
 
-    sound.volume = .15;
+    sound.volume = .1;
     if (!game.music.isMute) sound.play();
 	this.game = game;
 	this.x = -200;
@@ -794,6 +794,8 @@ Tower.prototype.update = function () {
 }
 
 Tower.prototype.draw = function () {
+    if (!this.game.mouse && !this.placed && this.game.isBuilding) this.game.ctx.drawImage(this.image, 400 - (this.image.width * this.scale / 2), 400 - (this.image.height * this.scale / 2), this.image.width * this.scale, this.image.height * this.scale);
+
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
@@ -809,11 +811,15 @@ Tower.prototype.draw = function () {
             this.game.ctx.stroke();
             this.game.ctx.closePath();
             this.game.ctx.restore();
-        }
-
-        if (this.game.click && !this.game.mouse) this.placed = true;
+        }        
     }
-    
+    if (this.game.click && !this.game.mouse) this.placed = true;
+
+    if (!this.buildY && !this.buildX && this.placed) {
+        this.placed = true;
+        this.buildX = 400 - (this.image.width * this.scale / 2);
+        this.buildY = 400 - (this.image.height * this.scale / 2);
+    }    
 }
 
 function Cannon(game) {
@@ -856,6 +862,9 @@ Cannon.prototype.update = function () {
 }
 
 Cannon.prototype.draw = function () {
+    //place tower in center when initially selected
+    if (!this.game.mouse && !this.placed && this.game.isBuilding) this.game.ctx.drawImage(this.image, 400 - (this.image.width * this.scale / 2), 400 - (this.image.height * this.scale / 2), this.image.width * this.scale, this.image.height * this.scale);
+
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
@@ -871,9 +880,14 @@ Cannon.prototype.draw = function () {
             this.game.ctx.stroke();
             this.game.ctx.closePath();
             this.game.ctx.restore();
-        }
+        }        
+    }
+    if (this.game.click && !this.game.mouse) this.placed = true;
 
-        if (this.game.click && !this.game.mouse) this.placed = true;
+    if (!this.buildY && !this.buildX && this.placed) {
+        this.placed = true;
+        this.buildX = 400 - (this.image.width * this.scale / 2);
+        this.buildY = 400 - (this.image.height * this.scale / 2);
     }
     
 }
@@ -881,7 +895,7 @@ Cannon.prototype.draw = function () {
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
     //var sound = ASSET_MANAGER.getAsset("./audio/arrow.mp3");
     var sound = new Audio("./audio/arrow.mp3");
-    sound.volume = .15;
+    sound.volume = .1;
 
     if (!game.music.isMute && enemy) sound.play();
 
@@ -929,7 +943,7 @@ ArrowAttack.prototype.draw = function () {
 
 function CannonAttack(game, startx, starty, targetx, targety, enemy) {
     var sound = new Audio("./audio/cannon.mp3");
-    sound.volume = .15;
+    sound.volume = .1;
 
     if (!game.music.isMute && enemy) sound.play();
 
