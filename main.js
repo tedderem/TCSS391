@@ -239,7 +239,7 @@ function Zombie(game, x, y) {
 	this.maxHealth = 2;
 	this.health = this.maxHealth;
 	this.attackTimer = 90;
-	this.coinWorth = 25;
+	this.coinWorth = 10;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -357,7 +357,7 @@ function Archer(game, x, y) {
     this.maxHealth = 5;
     this.health = this.maxHealth;
     this.attackTimer = 80;
-    this.coinWorth = 50;
+    this.coinWorth = 25;
     this.x = x;
     this.y = y;
     this.targetX = 370;
@@ -466,7 +466,7 @@ function Warrior(game, x, y) {
     this.maxHealth = 10;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 100;
+    this.coinWorth = 50;
     this.damage = 1;
     this.x = x;
     this.y = y;
@@ -577,7 +577,7 @@ function Berserker(game, x, y) {
     this.maxHealth = 40;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 250;
+    this.coinWorth = 150;
     this.damage = 5;
     this.x = x;
     this.y = y;
@@ -678,8 +678,8 @@ Berserker.prototype.draw = function (ctx) {
 }
 
 function ScoreBoard(game) {
-    this.score = 0;
-    this.lifetimeScore = 0;
+    this.score = 500;
+    this.lifetimeScore = 500;
 
     this.soundOn = ASSET_MANAGER.getAsset("./img/soundon.png");
     this.soundOff = ASSET_MANAGER.getAsset("./img/soundoff.png");
@@ -894,10 +894,25 @@ Cannon.prototype.draw = function () {
 
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
     //var sound = ASSET_MANAGER.getAsset("./audio/arrow.mp3");
-    var sound = new Audio("./audio/arrow.mp3");
+    var sound;
+    
+    //try to segment the number of noises being sent out at later levels
+    if (game.buildingsUp.arrow > 40) {
+        sound = Math.random() < .05 ? new Audio("./audio/arrow.mp3") : ASSET_MANAGER.getAsset("./audio/arrow.mp3"); ASSET_MANAGER.getAsset("./audio/arrow.mp3");
+    } else if (game.buildingsUp.arrow > 20) {
+        sound = Math.random() < .25 ? new Audio("./audio/arrow.mp3") : ASSET_MANAGER.getAsset("./audio/arrow.mp3");
+    } else if (game.buildingsUp.arrow > 10) {
+        sound = Math.random() < .5 ? new Audio("./audio/arrow.mp3") : ASSET_MANAGER.getAsset("./audio/arrow.mp3");
+    } else {
+        sound = new Audio("./audio/arrow.mp3");
+    }
+
+    if (!enemy) {
+        sound = ASSET_MANAGER.getAsset("./audio/arrow.mp3");
+    }
     sound.volume = .1;
 
-    if (!game.music.isMute && enemy) sound.play();
+    if (!game.music.isMute) sound.play();
 
     this.x = startx;
     this.y = starty;
@@ -942,10 +957,20 @@ ArrowAttack.prototype.draw = function () {
 }
 
 function CannonAttack(game, startx, starty, targetx, targety, enemy) {
-    var sound = new Audio("./audio/cannon.mp3");
+    var sound;    
+
+    if (game.buildingsUp.cannon > 40) {
+        sound = Math.random() < .05 ? new Audio("./audio/cannon.mp3") : ASSET_MANAGER.getAsset("./audio/cannon.mp3");
+    } else if (game.buildingsUp.cannon > 20) {
+        sound = Math.random() < .25 ? new Audio("./audio/cannon.mp3") : ASSET_MANAGER.getAsset("./audio/cannon.mp3");
+    } else if (game.buildingsUp.cannon > 10) {
+        sound = Math.random() < .5 ? new Audio("./audio/cannon.mp3") : ASSET_MANAGER.getAsset("./audio/cannon.mp3");
+    } else {
+        sound = new Audio("./audio/cannon.mp3");
+    }
     sound.volume = .1;
 
-    if (!game.music.isMute && enemy) sound.play();
+    if (!game.music.isMute) sound.play();
 
     this.radius = 3;
     this.x = startx;
@@ -1073,7 +1098,7 @@ function Music() {
 
 //function to check the current time of the music and to set it the end once the music is within 7 seconds of finishing
 Music.prototype.checkDuration = function () {
-    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? this.music.duration : this.music.currentTime;
+    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? 0 : this.music.currentTime;
 }
 
 Music.prototype.mute = function() {

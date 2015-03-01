@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.0.1';
+var version = 'v1.0.2';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -40,6 +40,7 @@ function GameEngine() {
     this.intermission = false;
     this.intermissionCancel = false;
     this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
+    this.buildingsUp = { arrow: 0, cannon: 0 };
     this.gameOver = false;
     this.isBuilding = false;
 	this.entities = [];
@@ -108,6 +109,7 @@ GameEngine.prototype.restart = function (entity) {
     this.monsterEntities = [];
     this.topEntities = [];
     this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
+    this.buildingsUp = { arrow: 0, cannon: 0 };
 
     var sb = new ScoreBoard(this);
     this.addScoreBoard(sb);
@@ -148,14 +150,15 @@ GameEngine.prototype.startInput = function () {
         }
 
         //Developer keypress '0' for stress-testing +10 levels and 50k coins (can be spammed)
-        //if (e.keyCode === 48) {
-        //    that.monsterEntities = [];
-        //    that.scoreBoard.updateScore(50000);
-        //    that.round += 10;
-        //}
+        if (e.keyCode === 48) {
+            that.monsterEntities = [];
+            that.scoreBoard.updateScore(50000);
+            that.round += 10;
+        }
         //user hit 3 to create archer tower
         if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
             that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+            that.buildingsUp.arrow++;
             that.scoreBoard.updateScore(-1000);
             that.isBuilding = true;
             that.addTopEntity(new Tower(that));
@@ -163,6 +166,7 @@ GameEngine.prototype.startInput = function () {
         //user hit 4 to create a cannon tower 
         if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
             that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+            that.buildingsUp.cannon++;
             that.scoreBoard.updateScore(-1500);
             that.isBuilding = true;
             that.addTopEntity(new Cannon(that));
