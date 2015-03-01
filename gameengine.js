@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.0.2';
+var version = 'v1.0.3';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -140,21 +140,31 @@ GameEngine.prototype.startInput = function () {
         }
         //user hit 1 to restore health
         if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
-            that.scoreBoard.updateScore(-250);
-            that.castleHealth = that.maxCastleHealth;
+            if (that.castleHealth < that.maxCastleHealth) {
+                that.scoreBoard.updateScore(-250);
+                that.castleHealth = that.maxCastleHealth;
+            } else {
+                that.addTopEntity(new Message(that, "Already at full health", 335 - (that.ctx.measureText("Already at full health").width / 2), 550, "red", false, 2, "Bold 15pt"));
+            }
+        } else if (e.keyCode === 49 && that.intermission && that.scoreBoard.score < 250) {
+            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
+
         //user hit 2 to increase max health
         if (e.keyCode === 50 && that.intermission && that.scoreBoard.score >= 500) {
             that.scoreBoard.updateScore(-500);
             that.maxCastleHealth += 50;
+        } else if (e.keyCode === 50 && that.intermission && that.scoreBoard.score < 500) {
+            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
 
         //Developer keypress '0' for stress-testing +10 levels and 50k coins (can be spammed)
-        if (e.keyCode === 48) {
-            that.monsterEntities = [];
-            that.scoreBoard.updateScore(50000);
-            that.round += 10;
-        }
+        //if (e.keyCode === 48) {
+        //    that.monsterEntities = [];
+        //    that.scoreBoard.updateScore(50000);
+        //    that.round += 10;
+        //}
+
         //user hit 3 to create archer tower
         if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
             that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
@@ -162,7 +172,10 @@ GameEngine.prototype.startInput = function () {
             that.scoreBoard.updateScore(-1000);
             that.isBuilding = true;
             that.addTopEntity(new Tower(that));
+        } else if (e.keyCode === 51 && that.intermission && that.scoreBoard.score < 1000) {
+            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
+
         //user hit 4 to create a cannon tower 
         if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
             that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
@@ -170,6 +183,8 @@ GameEngine.prototype.startInput = function () {
             that.scoreBoard.updateScore(-1500);
             that.isBuilding = true;
             that.addTopEntity(new Cannon(that));
+        } else if (e.keyCode === 52 && that.intermission && that.scoreBoard.score < 1500) {
+            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
 
         //user hit 5 to add a bog
@@ -178,6 +193,8 @@ GameEngine.prototype.startInput = function () {
             that.speedModifier = .75;
         } else if (e.keyCode === 53 && that.intermission && that.speedModifier !== 1) {
             that.addTopEntity(new Message(that, "Bog already purchased", 275, 550, "red", false, 2, "Bold 15pt"));
+        } else if (e.keyCode === 53 && that.intermission && that.scoreBoard.score < 5000) {
+            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
     }, false);
     

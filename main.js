@@ -292,7 +292,7 @@ Zombie.prototype.update = function () {
 	        this.game.addTopEntity(new clickExplode(this.game));
 			//add new message entity to the game
 			if (this.health > 0){
-				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth , this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
+			    this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
 			}
 		}
 	}
@@ -402,7 +402,7 @@ Archer.prototype.update = function () {
             //add new message entity to the game
             if (this.health > 0) {
 				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + 
-							this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
+							this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
 				
 			}
         }
@@ -510,7 +510,7 @@ Warrior.prototype.update = function () {
             this.game.addTopEntity(new clickExplode(this.game));
             //add new message entity to the game
             if (this.health > 0) {
-                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
+                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
             }
         }
     }
@@ -621,7 +621,7 @@ Berserker.prototype.update = function () {
             this.game.addTopEntity(new clickExplode(this.game));
             //add new message entity to the game
             if (this.health > 0) {
-                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - 25, this.game.click.layerY - 25, null, true));
+                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
             }
         }
     }
