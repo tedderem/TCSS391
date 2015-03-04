@@ -159,11 +159,11 @@ GameEngine.prototype.startInput = function () {
         }
 
         //Developer keypress '0' for stress-testing +10 levels and 50k coins (can be spammed)
-        //if (e.keyCode === 48) {
-        //    that.monsterEntities = [];
-        //    that.scoreBoard.updateScore(50000);
-        //    that.round += 10;
-        //}
+        if (e.keyCode === 48) {
+            that.monsterEntities = [];
+            that.scoreBoard.updateScore(10000);
+            that.round += 5;
+        }
 
         //user hit 3 to create archer tower
         if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
@@ -211,7 +211,7 @@ GameEngine.prototype.startInput = function () {
             //if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) {
             //    that.addTopEntity(new clickExplode(that));
             //}
-        } else {
+        } else if (that.isBuilding && that.mouse) {
             that.isBuilding = false;
             that.mouse = null;
         }

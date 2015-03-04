@@ -239,7 +239,7 @@ function Zombie(game, x, y) {
 	this.maxHealth = 2;
 	this.health = this.maxHealth;
 	this.attackTimer = 90;
-	this.coinWorth = 10;
+	this.coinWorth = 20;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -286,7 +286,7 @@ Zombie.prototype.update = function () {
 	    var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 		
 		//see if the difference is within a certain range
-	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
+	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
 			//decrement health
 	        this.health--;
 	        this.game.addTopEntity(new clickExplode(this.game));
@@ -357,7 +357,7 @@ function Archer(game, x, y) {
     this.maxHealth = 5;
     this.health = this.maxHealth;
     this.attackTimer = 80;
-    this.coinWorth = 25;
+    this.coinWorth = 40;
     this.x = x;
     this.y = y;
     this.targetX = 370;
@@ -395,7 +395,7 @@ Archer.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
             this.game.addTopEntity(new clickExplode(this.game));
@@ -466,7 +466,7 @@ function Warrior(game, x, y) {
     this.maxHealth = 10;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 50;
+    this.coinWorth = 75;
     this.damage = 1;
     this.x = x;
     this.y = y;
@@ -504,7 +504,7 @@ Warrior.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
             this.game.addTopEntity(new clickExplode(this.game));
@@ -577,7 +577,7 @@ function Berserker(game, x, y) {
     this.maxHealth = 40;
     this.health = this.maxHealth;
     this.attackTimer = 50;
-    this.coinWorth = 150;
+    this.coinWorth = 200;
     this.damage = 5;
     this.x = x;
     this.y = y;
@@ -615,7 +615,7 @@ Berserker.prototype.update = function () {
         var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
 
         //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale)) {
+        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
             //decrement health
             this.health--;
             this.game.addTopEntity(new clickExplode(this.game));
