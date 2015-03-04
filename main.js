@@ -181,7 +181,14 @@ Message.prototype.draw = function () {
 
 function clickExplode(game) {
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/clickExplode.png"), 0, 0, 66.7, 66.7, 0.03, 32, false, false);
-    var sound = new Audio("./audio/boom.wav");
+    var sound
+
+    //check if shiftkey is pressed to eliminate the audio pollution
+    if (!game.mouse.shiftKey) {
+        sound = new Audio("./audio/boom.wav");
+    } else {
+        sound = ASSET_MANAGER.getAsset("./audio/boom.wav");
+    }
 
     sound.volume = .1;
     if (!game.music.isMute) sound.play();

@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.0.3';
+var version = 'v1.0.4';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -425,7 +425,6 @@ GameEngine.prototype.loop = function () {
         this.ctx.restore();
     }
 	this.click = null;
-	//this.mouse = null;
 }
 
 function Entity(game, x, y) {
