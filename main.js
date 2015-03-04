@@ -184,7 +184,7 @@ function clickExplode(game) {
     var sound
 
     //check if shiftkey is pressed to eliminate the audio pollution
-    if (!game.mouse.shiftKey) {
+    if (!game.click.shiftKey) {
         sound = new Audio("./audio/boom.wav");
     } else {
         sound = ASSET_MANAGER.getAsset("./audio/boom.wav");
