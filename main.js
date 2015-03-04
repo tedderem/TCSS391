@@ -822,8 +822,7 @@ Tower.prototype.draw = function () {
     }
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    if (!this.buildY && !this.buildX && this.placed) {
-        this.placed = true;
+    if (!this.buildY && !this.buildX) {
         this.buildX = 400 - (this.image.width * this.scale / 2);
         this.buildY = 400 - (this.image.height * this.scale / 2);
     }    
@@ -891,8 +890,7 @@ Cannon.prototype.draw = function () {
     }
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    if (!this.buildY && !this.buildX && this.placed) {
-        this.placed = true;
+    if (!this.buildY && !this.buildX) {
         this.buildX = 400 - (this.image.width * this.scale / 2);
         this.buildY = 400 - (this.image.height * this.scale / 2);
     }
