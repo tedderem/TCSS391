@@ -58,13 +58,13 @@ Animation.prototype.generateFrame = function (i) {
 	index = i;
 	var vindex = 0;
 	if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
-		index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
-       		vindex++;
-    	}
-    	while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
-       		index -= Math.floor(this.spriteSheet.width / this.frameWidth);
-       		vindex++;
-    	}
+	index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
+       	vindex++;
+    }
+    while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
+       	index -= Math.floor(this.spriteSheet.width / this.frameWidth);
+       	vindex++;
+    }
 		
 	var offscreenCanvas = document.createElement('canvas');
 	
