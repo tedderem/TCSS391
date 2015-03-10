@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.1.1';
+var version = 'v1.1.2';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -346,6 +346,7 @@ GameEngine.prototype.populate = function () {
 //Function called when game is over. Removes top entities and monsters to stop sounds playing. 
 GameEngine.prototype.endGame = function () {
     this.monsterEntities = [];
+    this.buildingEntities.splice(1, this.buildingEntities.length - 1);
     this.topEntities = [];
 }
 
