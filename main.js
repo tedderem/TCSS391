@@ -1,24 +1,3 @@
-//In place for now for grid system later on for towers
-var GameGrid = function (game) {
-    this.game = game;
-    this.rows = 10;
-    this.columns = 10;
-    this.emptySpot = ' ';
-    this.takenSpot = 'X';
-    this.spots = [];
-
-    for (var i = 0; i < this.rows; i++) {
-        this.spots.push([]);
-        for (var j = 0; j < this.columns; j++) {
-            this.spots(i).push(this.emptySpot);
-        }
-    }
-}
-
-GameGrid.prototype.draw = function (ctx) {
-
-}
-
 function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, angle, registry) {
     this.spriteSheet = spriteSheet;
     this.startX = startX;
@@ -239,6 +218,43 @@ scanRegistry = function(angle, angleTolerance, registry) {
 	return -1;
 }
 
+function findTarget(monster, game) {
+    var target = {index: null, distance: null};
+
+    //check all buildings to find the closest
+    for (var i = 0; i < game.buildingEntities.length; i++) {
+        var dx = monster.x - game.buildingEntities[i].buildX;
+        var dy = monster.y - game.buildingEntities[i].buildY;
+
+        var distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (!target.index && target.index !== 0 || target.distance && target.distance > distance) {
+            target.index = i;
+            target.distance = distance;
+        } 
+    }
+
+    //set monster's target and target's X and Y coordinate
+    monster.target = game.buildingEntities[target.index];
+    monster.targetX = monster.target.buildX + (monster.target.image.width * monster.target.scale / 2);
+    monster.targetY = monster.target.buildY + (monster.target.image.height * monster.target.scale / 2);
+    
+    var difX = monster.targetX - monster.x; // x,y of vector to center
+    var difY = monster.targetY - monster.y;
+    monster.magnitude = Math.sqrt(difX * difX + difY * difY);
+    monster.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
+    if (monster.y < monster.targetY) {
+        monster.angle += Math.PI;
+    }
+    monster.unitX = difX / monster.magnitude; //x,y of unit vector to center
+    monster.unitY = difY / monster.magnitude;
+
+    //calculate range that monster attacks at
+    monster.range = ((Math.max(monster.target.image.width,monster.target.image.height)  / 2 * monster.target.scale) / monster.speed) + 25;
+
+    monster.toCollide = (monster.magnitude) / monster.speed;//steps to hit castle
+}
+
 function Zombie(game, x, y) {    
     this.attacking = false;
     this.scale = .4;
@@ -250,21 +266,11 @@ function Zombie(game, x, y) {
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
-	this.targetX = 375;
-	this.targetY = 380;
-	//calculate angle to target, 400,400 to center for now
-	var difX = this.targetX - this.x; // x,y of vector to center
-	var difY = this.targetY - this.y;
-	var magnitude = Math.sqrt(difX*difX+difY*difY);
-	this.angle = 4/2 * Math.PI - Math.atan(difX/ difY);
-	if (this.y < this.targetY) {
-		this.angle += Math.PI;
-	}
-	this.unitX = difX/magnitude; //x,y of unit vector to center
-	this.unitY = difY/magnitude;
 	this.speed = .2 * game.speedModifier; //speed to modify unit vector
-	this.range = 75 / this.speed;
-	this.toCollide = (magnitude) / this.speed;//steps to hit castle
+
+	findTarget(this, game, this.speed);
+
+	
 	/*
 	if (scanRegistry(this.angle, globalAngleTolerance, zombieWalkingRegistry) !== -1 && this.animation.completeCache()) {
 		zombieWalkingRegistry.push(this.animation);
@@ -273,12 +279,13 @@ function Zombie(game, x, y) {
 		zombieAttackRegisty.push(this.attackingAnimation);
 	}
 	*/
+	
 	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle, zombieWalkRegistry);
 	this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
 
 
-    Entity.call(this, game, this.x, this.y);
-	
+
+	Entity.call(this, game, this.x, this.y);	
 	
 }
 
@@ -327,7 +334,7 @@ Zombie.prototype.update = function () {
             this.animation.elapsedTime = 0;
         }
 		if (this.attackTimer === 0) {
-			this.game.castleHealth -= this.damage;
+		    this.target.health -= this.damage;
 			this.attackTimer = 90;
 		}
     } else {
@@ -339,6 +346,13 @@ Zombie.prototype.update = function () {
         } else {
             this.attacking = true;
         }
+	}
+
+	if (this.target.health <= 0 || !this.target) {
+	    findTarget(this, this.game);
+	    this.attacking = false;
+	    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle, zombieWalkRegistry);
+	    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
 	}
 	
     Entity.prototype.update.call(this);
@@ -367,8 +381,9 @@ function Archer(game, x, y) {
     this.coinWorth = 40;
     this.x = x;
     this.y = y;
-    this.targetX = 370;
-    this.targetY = 385;
+    this.target = game.buildingEntities[0];
+    this.targetX = this.target.buildX + (this.target.image.width * this.target.scale / 2);
+    this.targetY = this.target.buildY + (this.target.image.height * this.target.scale / 2);
     //calculate angle to target, 400,400 to center for now
     var difX = this.targetX - this.x; // x,y of vector to center
     var difY = this.targetY - this.y;
@@ -477,21 +492,12 @@ function Warrior(game, x, y) {
     this.damage = 1;
     this.x = x;
     this.y = y;
-    this.targetX = 375;
-    this.targetY = 380;
-    //calculate angle to target, 400,400 to center for now
-    var difX = this.targetX - this.x; // x,y of vector to center
-    var difY = this.targetY - this.y;
-    var magnitude = Math.sqrt(difX * difX + difY * difY);
-    this.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
-    if (this.y < this.targetY) {
-        this.angle += Math.PI;
-    }
-    this.unitX = difX / magnitude; //x,y of unit vector to center
-    this.unitY = difY / magnitude;
+    
     this.speed = .4 * game.speedModifier; //speed to modify unit vector
     this.range = 75 / this.speed;
-    this.toCollide = (magnitude) / this.speed;//steps to hit castle
+
+    findTarget(this, game, this.speed);
+
 
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/warriorwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, warriorWalkRegistry);
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/warriorattack.png"), 0, 0, 195, 195, 0.15, 14, true, false, this.angle, warriorAttackRegistry);
@@ -546,7 +552,7 @@ Warrior.prototype.update = function () {
             this.animation.elapsedTime = 0;
         }
         if (this.attackTimer === 0) {
-            this.game.castleHealth -= this.damage;
+            this.target.health -= this.damage;
             this.attackTimer = 90;
         }
     } else {
@@ -558,6 +564,13 @@ Warrior.prototype.update = function () {
         } else {
             this.attacking = true;
         }
+    }
+
+    if (this.target.health <= 0 || !this.target) {
+        findTarget(this, this.game);
+        this.attacking = false;
+        this.animation = new Animation(ASSET_MANAGER.getAsset("./img/warriorwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, warriorWalkRegistry);
+        this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/warriorattack.png"), 0, 0, 195, 195, 0.15, 14, true, false, this.angle, warriorAttackRegistry);
     }
 
     Entity.prototype.update.call(this);
@@ -588,21 +601,11 @@ function Berserker(game, x, y) {
     this.damage = 5;
     this.x = x;
     this.y = y;
-    this.targetX = 375;
-    this.targetY = 380;
-    //calculate angle to target, 400,400 to center for now
-    var difX = this.targetX - this.x; // x,y of vector to center
-    var difY = this.targetY - this.y;
-    var magnitude = Math.sqrt(difX * difX + difY * difY);
-    this.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
-    if (this.y < this.targetY) {
-        this.angle += Math.PI;
-    }
-    this.unitX = difX / magnitude; //x,y of unit vector to center
-    this.unitY = difY / magnitude;
+    
     this.speed = .15 * game.speedModifier; //speed to modify unit vector
     this.range = 75 / this.speed;
-    this.toCollide = (magnitude) / this.speed;//steps to hit castle
+
+    findTarget(this, game, this.speed);
 
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudewalk.png"), 0, 0, 127, 127, 0.1, 24, true, false, this.angle, dudeWalkRegistry);
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudeattack.png"), 0, 0, 192, 191, 0.15, 30, true, false, this.angle, dudeAttackRegistry);
@@ -657,7 +660,7 @@ Berserker.prototype.update = function () {
             this.animation.elapsedTime = 0;
         }
         if (this.attackTimer === 0) {
-            this.game.castleHealth -= this.damage;
+            this.target.health -= this.damage;
             this.attackTimer = 90;
         }
     } else {
@@ -669,6 +672,13 @@ Berserker.prototype.update = function () {
         } else {
             this.attacking = true;
         }
+    }
+
+    if (this.target.health <= 0 || !this.target) {
+        findTarget(this, this.game);
+        this.attacking = false;
+        this.animation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudewalk.png"), 0, 0, 127, 127, 0.1, 24, true, false, this.angle, dudeWalkRegistry);
+        this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudeattack.png"), 0, 0, 192, 191, 0.15, 30, true, false, this.angle, dudeAttackRegistry);
     }
 
     Entity.prototype.update.call(this);
@@ -740,23 +750,31 @@ ScoreBoard.prototype.draw = function () {
 }
 
 function Castle(game) {
-    this.scale = 1.5;
-
+    this.health = 100;
+    this.scale = 1.25;
+    
     this.image = ASSET_MANAGER.getAsset("./img/castle.png");
-    Entity.call(this, game, 0, 0);
+
+    this.buildX = 400 - (this.image.width / 2 * this.scale);
+    this.buildY = 400 - (this.image.height / 2 * this.scale);
+
+    Entity.call(this, game, this.x, this.y);
 }
 
 Castle.prototype = new Entity();
 Castle.prototype.constructor = Castle;
 
+Castle.prototype.update = function () {
+    this.game.castleHealth = this.health;
+}
+
 Castle.prototype.draw = function () {
-    var xLoc = (this.game.ctx.canvas.width / 2) - (this.image.width / 2 * this.scale);
-    var yLoc = (this.game.ctx.canvas.height / 2) - (this.image.height / 2 * this.scale);
-    this.game.ctx.drawImage(this.image, xLoc, yLoc, this.image.width * this.scale, this.image.height * this.scale);
+    this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
 }
 
 function Tower(game) {  
-    this.scale = 1;
+    this.scale = .8;
+    this.health = 25;
     this.placed = false;
     //this.showRange = true;
     this.range = 200;
@@ -798,17 +816,20 @@ Tower.prototype.update = function () {
 
         if (this.attackTimer === 0) this.attackTimer = 90;
     }
+    
+    if (this.health <= 0) {
+        this.removeFromWorld = true;
+    }
 }
 
 Tower.prototype.draw = function () {
-    if (!this.game.mouse && !this.placed && this.game.isBuilding) this.game.ctx.drawImage(this.image, 400 - (this.image.width * this.scale / 2), 400 - (this.image.height * this.scale / 2), this.image.width * this.scale, this.image.height * this.scale);
-
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
     }
     if (this.buildY && this.buildX) {
         this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
+        //draw radius for tower
         if (displayRadius) {
             this.game.ctx.beginPath();
             this.game.ctx.save();
@@ -822,18 +843,39 @@ Tower.prototype.draw = function () {
     }
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    if (!this.buildY && !this.buildX) {
-        this.buildX = 400 - (this.image.width * this.scale / 2);
-        this.buildY = 400 - (this.image.height * this.scale / 2);
-    }    
+    //draw health of tower
+    if (this.placed) {
+        this.game.ctx.save();
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "black";
+        this.game.ctx.fillRect(this.buildX - 1, this.buildY - 11, this.image.width * this.scale + 2, 10);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "red";
+        this.game.ctx.fillRect(this.buildX, this.buildY - 10, this.image.width * this.scale, 8);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "green";
+        var healthPercentage = this.image.width * this.scale * (this.health / 25);
+        this.game.ctx.fillRect(this.buildX, this.buildY - 10, healthPercentage, 8);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+        this.game.ctx.restore();
+    }
+
 }
 
 function Cannon(game) {
-    this.scale = 1;
+    this.scale = .8;
     this.placed = false;
     //this.showRange = true;
     this.range = 300;
     this.attackTimer = 180;
+    this.health = 25;
 
     this.image = ASSET_MANAGER.getAsset("./img/cannon.png");
     Entity.call(this, game, 0, 0);
@@ -865,12 +907,14 @@ Cannon.prototype.update = function () {
 
         if (this.attackTimer === 0) this.attackTimer = 180;
     }
+
+    if (this.health <= 0) {
+        this.removeFromWorld = true;
+    }
 }
 
 Cannon.prototype.draw = function () {
-    //place tower in center when initially selected
-    if (!this.game.mouse && !this.placed && this.game.isBuilding) this.game.ctx.drawImage(this.image, 400 - (this.image.width * this.scale / 2), 400 - (this.image.height * this.scale / 2), this.image.width * this.scale, this.image.height * this.scale);
-
+    
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
@@ -890,11 +934,29 @@ Cannon.prototype.draw = function () {
     }
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    if (!this.buildY && !this.buildX) {
-        this.buildX = 400 - (this.image.width * this.scale / 2);
-        this.buildY = 400 - (this.image.height * this.scale / 2);
+    //draw health of cannon
+    if (this.placed) {
+        this.game.ctx.save();
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "black";
+        this.game.ctx.fillRect(this.buildX - 1, this.buildY - 11, this.image.width * this.scale + 2, 10);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "red";
+        this.game.ctx.fillRect(this.buildX, this.buildY - 10, this.image.width * this.scale, 8);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+
+        this.game.ctx.beginPath();
+        this.game.ctx.fillStyle = "green";
+        var healthPercentage = this.image.width * this.scale * (this.health / 25);
+        this.game.ctx.fillRect(this.buildX, this.buildY - 10, healthPercentage, 8);
+        this.game.ctx.fill();
+        this.game.ctx.closePath();
+        this.game.ctx.restore();
     }
-    
 }
 
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
@@ -951,7 +1013,7 @@ ArrowAttack.prototype.update = function () {
         if (this.target) {
             this.target.health -= this.damage;
         } else {
-            this.game.castleHealth -= this.damage;
+            this.game.buildingEntities[0].health -= this.damage;
         }
         this.removeFromWorld = true;
     }
@@ -1172,7 +1234,7 @@ ASSET_MANAGER.downloadAll(function () {
     gameEngine.addScoreBoard(scoreBoard);
     gameEngine.fog = new Fog(gameEngine);
     //gameEngine.addEntity(scoreBoard);
-    gameEngine.addEntity(new Castle(gameEngine));
+    gameEngine.addBuilding(new Castle(gameEngine));
 
     gameEngine.addMusic(new Music());
     
