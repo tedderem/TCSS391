@@ -223,8 +223,9 @@ function findTarget(monster, game) {
 
     //check all buildings to find the closest
     for (var i = 0; i < game.buildingEntities.length; i++) {
-        var dx = monster.x - game.buildingEntities[i].buildX;
-        var dy = monster.y - game.buildingEntities[i].buildY;
+        var building = game.buildingEntities[i];
+        var dx = (monster.x + (monster.animation.frameWidth * monster.scale / 2)) - (building.buildX + (building.image.width * building.scale / 2));
+        var dy = (monster.y + (monster.animation.frameHeight * monster.scale / 2)) - (building.buildY + (building.image.width * building.scale / 2));
 
         var distance = Math.sqrt(dx * dx + dy * dy);
 
@@ -236,11 +237,12 @@ function findTarget(monster, game) {
 
     //set monster's target and target's X and Y coordinate
     monster.target = game.buildingEntities[target.index];
+    
     monster.targetX = monster.target.buildX + (monster.target.image.width * monster.target.scale / 2);
     monster.targetY = monster.target.buildY + (monster.target.image.height * monster.target.scale / 2);
     
-    var difX = monster.targetX - monster.x; // x,y of vector to center
-    var difY = monster.targetY - monster.y;
+    var difX = monster.targetX - (monster.x + (monster.animation.frameWidth * monster.scale / 2)); // x,y of vector to center
+    var difY = monster.targetY - (monster.y + (monster.animation.frameHeight * monster.scale / 2));
     monster.magnitude = Math.sqrt(difX * difX + difY * difY);
     monster.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
     if (monster.y < monster.targetY) {
@@ -250,7 +252,7 @@ function findTarget(monster, game) {
     monster.unitY = difY / monster.magnitude;
 
     //calculate range that monster attacks at
-    monster.range = ((Math.max(monster.target.image.width,monster.target.image.height)  / 2 * monster.target.scale) / monster.speed) + 25;
+    monster.range = ((Math.max(monster.target.image.width, monster.target.image.height)  / 2 * monster.target.scale) / monster.speed) + 25;
 
     monster.toCollide = (monster.magnitude) / monster.speed;//steps to hit castle
 }
@@ -267,6 +269,12 @@ function Zombie(game, x, y) {
 	this.x = x;
 	this.y = y;
 	this.speed = .2 * game.speedModifier; //speed to modify unit vector
+	this.angle = 0;
+
+    //used twice to get the frame widths for better calculations, will be changed after findTarget call
+	this.animation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 0, 0, 128, 128, 0.05, 30, true, false, this.angle, zombieWalkRegistry);
+	this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/zombie.png"), 384, 384, 128, 128, 0.05, 40, true, false, this.angle, zombieAttackRegistry);
+
 
 	findTarget(this, game, this.speed);
 
@@ -494,7 +502,12 @@ function Warrior(game, x, y) {
     this.y = y;
     
     this.speed = .4 * game.speedModifier; //speed to modify unit vector
-    this.range = 75 / this.speed;
+    this.angle = 0;
+
+    //used twice, will be overwritten once findTarget is called
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/warriorwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, warriorWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/warriorattack.png"), 0, 0, 195, 195, 0.15, 14, true, false, this.angle, warriorAttackRegistry);
+
 
     findTarget(this, game, this.speed);
 
@@ -578,7 +591,7 @@ Warrior.prototype.update = function () {
 
 Warrior.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 30, this.y - 30, this.scale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 25, this.y - 25, this.scale);
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
     }
@@ -603,7 +616,12 @@ function Berserker(game, x, y) {
     this.y = y;
     
     this.speed = .15 * game.speedModifier; //speed to modify unit vector
-    this.range = 75 / this.speed;
+    this.angle = 0;
+
+    //constructed twice, but used for now to obtain width and height
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudewalk.png"), 0, 0, 127, 127, 0.1, 24, true, false, this.angle, dudeWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/bigdudeattack.png"), 0, 0, 192, 191, 0.15, 30, true, false, this.angle, dudeAttackRegistry);
+
 
     findTarget(this, game, this.speed);
 

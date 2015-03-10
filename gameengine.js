@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.1.0';
+var version = 'v1.1.1';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -202,21 +202,16 @@ GameEngine.prototype.startInput = function () {
     this.ctx.canvas.addEventListener("mousemove", function (e) {
         if (that.isBuilding) that.mouse = e;
     }, false);
-
-    this.ctx.canvas.addEventListener("click", function (e) {
-        //console.log(e.layerX + ", " + e.layerY);
+    
+    this.ctx.canvas.addEventListener("click", function (e) {        
         that.click = e;
         that.scoreBoard.update();
-        if (!that.isBuilding) {
-            //if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) {
-            //    that.addTopEntity(new clickExplode(that));
-            //}
-        } else if (that.isBuilding && that.mouse) {
+        if (that.isBuilding && that.mouse) {
             that.isBuilding = false;
             that.mouse = null;
         }
-            
-        e.preventDefault();
+        
+        e.preventDefault();        
     }, false);
 	
     console.log('Input started');
@@ -292,20 +287,22 @@ GameEngine.prototype.update = function () {
 //Calculate the coordinates for the enemies spawning in
 var CalcCoords = function () {
     if (Math.random() < .5) {
-        var startx = -50 + Math.random() * 850;
+        var startx = Math.random() * 850;
 
+        //50 percent change that the y coordinate will be above or below the screen
         if (Math.random() < .5) {
-            var starty = Math.random() < .9 ? (-100 - Math.random() * 200) : -100;
+            var starty = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
         } else {
-            var starty = Math.random() < .9 ? (900 + Math.random() * 200) : 900;
+            var starty = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
         }
     } else {
-        var starty = -50 + Math.random() * 850;
+        var starty = Math.random() * 850;
 
+        //50 percent chance x coordinate will either be off to the left or right of screen
         if (Math.random() < .5) {
-            var startx = Math.random() < .9 ? (-100 - Math.random() * 200) : -100;
+            var startx = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
         } else {
-            var startx = Math.random() < .9 ? (900 + Math.random() * 200) : 900;
+            var startx = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
         }
     }
 
@@ -316,9 +313,8 @@ GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
 	if (entitiesCount === 0 && !this.gameOver && !this.intermission) {
 	    this.round++;
-	    var firstLocValue = [-400, 400];
-	    var secondLocValue = [-200, 800];
-        //Spawn zombies
+
+	    //Spawn zombies
 	    for (var i = 0; i < this.round * 2; i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
