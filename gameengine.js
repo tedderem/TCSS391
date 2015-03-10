@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.0.4';
+var version = 'v1.1.0';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
