@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.0.4';
+var version = 'v1.1.2';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -43,8 +43,8 @@ function GameEngine() {
     this.buildingsUp = { arrow: 0, cannon: 0 };
     this.gameOver = false;
     this.isBuilding = false;
-	this.entities = [];
 	this.monsterEntities = [];
+	this.buildingEntities = [];
 	this.topEntities = [];
     this.showOutlines = false;
     this.ctx = null;
@@ -86,9 +86,9 @@ GameEngine.prototype.addTopEntity = function (entity) {
     this.topEntities.push(entity);
 }
 
-GameEngine.prototype.addEntity = function (entity) {
+GameEngine.prototype.addBuilding = function (entity) {
     //console.log('added entity');
-    this.entities.push(entity);
+    this.buildingEntities.push(entity);
 }
 
 GameEngine.prototype.addMonsterEntity = function (entity) {
@@ -98,8 +98,8 @@ GameEngine.prototype.addMonsterEntity = function (entity) {
 
 GameEngine.prototype.restart = function (entity) {
     this.round = 0;
-    this.castleHealth = 100;
-    this.maxCastleHealth = this.castleHealth;
+    this.buildingEntities[0].health = 100;
+    this.maxCastleHealth = this.buildingEntities[0].health;
     this.gameOver = false;
     this.speedModifier = 1;
     this.intermission = false;
@@ -142,7 +142,7 @@ GameEngine.prototype.startInput = function () {
         if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
             if (that.castleHealth < that.maxCastleHealth) {
                 that.scoreBoard.updateScore(-250);
-                that.castleHealth = that.maxCastleHealth;
+                that.buildingEntities[0].health = that.maxCastleHealth;
             } else {
                 that.addTopEntity(new Message(that, "Already at full health", 335 - (that.ctx.measureText("Already at full health").width / 2), 550, "red", false, 2, "Bold 15pt"));
             }
@@ -171,7 +171,7 @@ GameEngine.prototype.startInput = function () {
             that.buildingsUp.arrow++;
             that.scoreBoard.updateScore(-1000);
             that.isBuilding = true;
-            that.addTopEntity(new Tower(that));
+            that.addBuilding(new Tower(that));
         } else if (e.keyCode === 51 && that.intermission && that.scoreBoard.score < 1000) {
             that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
@@ -182,7 +182,7 @@ GameEngine.prototype.startInput = function () {
             that.buildingsUp.cannon++;
             that.scoreBoard.updateScore(-1500);
             that.isBuilding = true;
-            that.addTopEntity(new Cannon(that));
+            that.addBuilding(new Cannon(that));
         } else if (e.keyCode === 52 && that.intermission && that.scoreBoard.score < 1500) {
             that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
         }
@@ -202,21 +202,16 @@ GameEngine.prototype.startInput = function () {
     this.ctx.canvas.addEventListener("mousemove", function (e) {
         if (that.isBuilding) that.mouse = e;
     }, false);
-
-    this.ctx.canvas.addEventListener("click", function (e) {
-        //console.log(e.layerX + ", " + e.layerY);
+    
+    this.ctx.canvas.addEventListener("click", function (e) {        
         that.click = e;
         that.scoreBoard.update();
-        if (!that.isBuilding) {
-            //if (!that.isBuilding && !that.gameOver && !that.intermission && that.gameStarted) {
-            //    that.addTopEntity(new clickExplode(that));
-            //}
-        } else if (that.isBuilding && that.mouse) {
+        if (that.isBuilding && that.mouse) {
             that.isBuilding = false;
             that.mouse = null;
         }
-            
-        e.preventDefault();
+        
+        e.preventDefault();        
     }, false);
 	
     console.log('Input started');
@@ -226,8 +221,8 @@ GameEngine.prototype.startInput = function () {
 GameEngine.prototype.draw = function () {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.ctx.save();
-    for (var i = 0; i < this.entities.length; i++) {
-        this.entities[i].draw(this.ctx);
+    for (var i = 0; i < this.buildingEntities.length; i++) {
+        this.buildingEntities[i].draw(this.ctx);
     }
     for (var i = 0; i < this.monsterEntities.length; i++) {
         this.monsterEntities[i].draw(this.ctx);
@@ -239,19 +234,19 @@ GameEngine.prototype.draw = function () {
 }
 
 GameEngine.prototype.update = function () {
-    var entitiesCount = this.entities.length;
+    var entitiesCount = this.buildingEntities.length;
 
     for (var i = 0; i < entitiesCount; i++) {
-        var entity = this.entities[i];
+        var entity = this.buildingEntities[i];
 
         if (!entity.removeFromWorld) {
             entity.update();
         }
     }
 
-    for (var i = this.entities.length - 1; i >= 0; --i) {
-        if (this.entities[i].removeFromWorld) {
-            this.entities.splice(i, 1);
+    for (var i = this.buildingEntities.length - 1; i >= 0; --i) {
+        if (this.buildingEntities[i].removeFromWorld) {
+            this.buildingEntities.splice(i, 1);
         }
     }
 
@@ -292,20 +287,22 @@ GameEngine.prototype.update = function () {
 //Calculate the coordinates for the enemies spawning in
 var CalcCoords = function () {
     if (Math.random() < .5) {
-        var startx = -50 + Math.random() * 850;
+        var startx = Math.random() * 850;
 
+        //50 percent change that the y coordinate will be above or below the screen
         if (Math.random() < .5) {
-            var starty = Math.random() < .75 ? (-100 - Math.random() * 200) : -100;
+            var starty = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
         } else {
-            var starty = Math.random() < .75 ? (900 + Math.random() * 200) : 900;
+            var starty = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
         }
     } else {
-        var starty = -50 + Math.random() * 850;
+        var starty = Math.random() * 850;
 
+        //50 percent chance x coordinate will either be off to the left or right of screen
         if (Math.random() < .5) {
-            var startx = Math.random() < .75 ? (-100 - Math.random() * 200) : -100;
+            var startx = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
         } else {
-            var startx = Math.random() < .75 ? (900 + Math.random() * 200) : 900;
+            var startx = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
         }
     }
 
@@ -316,9 +313,8 @@ GameEngine.prototype.populate = function () {
     var entitiesCount = this.monsterEntities.length;
 	if (entitiesCount === 0 && !this.gameOver && !this.intermission) {
 	    this.round++;
-	    var firstLocValue = [-400, 400];
-	    var secondLocValue = [-200, 800];
-        //Spawn zombies
+
+	    //Spawn zombies
 	    for (var i = 0; i < this.round * 2; i++) {
 	        var coords = CalcCoords();
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
@@ -350,6 +346,7 @@ GameEngine.prototype.populate = function () {
 //Function called when game is over. Removes top entities and monsters to stop sounds playing. 
 GameEngine.prototype.endGame = function () {
     this.monsterEntities = [];
+    this.buildingEntities.splice(1, this.buildingEntities.length - 1);
     this.topEntities = [];
 }
 
