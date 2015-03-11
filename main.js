@@ -675,6 +675,8 @@ Tower.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+		this.buildX = this.x;
+		this.buildY = this.y;
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
@@ -744,6 +746,8 @@ Cannon.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+		this.buildX = this.x;
+		this.buildY = this.y;
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
