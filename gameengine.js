@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.1.2';
+var version = 'v1.1.3';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -285,24 +285,24 @@ GameEngine.prototype.update = function () {
 }
 
 //Calculate the coordinates for the enemies spawning in
-var CalcCoords = function () {
+var CalcCoords = function (round) {
     if (Math.random() < .5) {
         var startx = Math.random() * 850;
 
         //50 percent change that the y coordinate will be above or below the screen
         if (Math.random() < .5) {
-            var starty = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
+            var starty = Math.random() < .75 && round > 5 ? (-100 - Math.random() * 200) : -100;
         } else {
-            var starty = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
+            var starty = Math.random() < .75 && round > 5 ? (900 + Math.random() * 200) : 900;
         }
     } else {
         var starty = Math.random() * 850;
 
         //50 percent chance x coordinate will either be off to the left or right of screen
         if (Math.random() < .5) {
-            var startx = Math.random() < .9 ? (-50 - Math.random() * 200) : -25;
+            var startx = Math.random() < .75 && round > 5 ? (-100 - Math.random() * 200) : -100;
         } else {
-            var startx = Math.random() < .9 ? (850 + Math.random() * 200) : 825;
+            var startx = Math.random() < .75 && round > 5 ? (900 + Math.random() * 200) : 900;
         }
     }
 
@@ -316,19 +316,19 @@ GameEngine.prototype.populate = function () {
 
 	    //Spawn zombies
 	    for (var i = 0; i < this.round * 2; i++) {
-	        var coords = CalcCoords();
+	        var coords = CalcCoords(this.round);
 	        this.addMonsterEntity(new Zombie(this, coords.x, coords.y));
 	    }
 
         //spawn archers
 	    for (var i = 0; i < Math.floor(this.round / 3); i++) {
-	        var coords = CalcCoords();
+	        var coords = CalcCoords(this.round);
 	        this.addMonsterEntity(new Archer(this, coords.x, coords.y));
 	    }
 
 	    //spawn warriors
 	    for (var i = 0; i < Math.floor(this.round / 5); i++) {
-	        var coords = CalcCoords();
+	        var coords = CalcCoords(this.round);
 	        this.addMonsterEntity(new Warrior(this, coords.x, coords.y));
 	    }
 
@@ -336,7 +336,7 @@ GameEngine.prototype.populate = function () {
 	    for (var i = 0; i < Math.floor(this.round / 10); i++) {
             //50 percent chance that he will spawn
 	        if (Math.random() < .5) {
-	            var coords = CalcCoords();
+	            var coords = CalcCoords(this.round);
 	            this.addMonsterEntity(new Berserker(this, coords.x, coords.y));
             }
 	    }
@@ -434,7 +434,12 @@ function Entity(game, x, y) {
 Entity.prototype.update = function () {
 }
 
-Entity.prototype.draw = function (ctx, width) {
+Entity.prototype.draw = function (ctx) {
+
+}
+
+//Draws an entities health bar
+Entity.prototype.drawHealth = function () {
     var barWidth = 40;
     var barHeight = 6;
 

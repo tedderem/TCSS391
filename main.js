@@ -302,8 +302,8 @@ function findTarget(monster, game) {
     //check all buildings to find the closest
     for (var i = 0; i < game.buildingEntities.length; i++) {
         var building = game.buildingEntities[i];
-        var dx = (monster.x + (monster.animation.frameWidth * monster.scale / 2)) - (building.buildX + (building.image.width * building.scale / 2));
-        var dy = (monster.y + (monster.animation.frameHeight * monster.scale / 2)) - (building.buildY + (building.image.width * building.scale / 2));
+        var dx = (monster.x + (monster.animation.frameWidth * monster.scale / 2)) - (building.x + (building.image.width * building.scale / 2));
+        var dy = (monster.y + (monster.animation.frameHeight * monster.scale / 2)) - (building.y + (building.image.width * building.scale / 2));
 
         var distance = Math.sqrt(dx * dx + dy * dy);
 
@@ -316,8 +316,8 @@ function findTarget(monster, game) {
     //set monster's target and target's X and Y coordinate
     monster.target = game.buildingEntities[target.index];
     
-    monster.targetX = monster.target.buildX + (monster.target.image.width * monster.target.scale / 2);
-    monster.targetY = monster.target.buildY + (monster.target.image.height * monster.target.scale / 2);
+    monster.targetX = monster.target.x + (monster.target.image.width * monster.target.scale / 2);
+    monster.targetY = monster.target.y + (monster.target.image.height * monster.target.scale / 2);
     
     var difX = monster.targetX - (monster.x + (monster.animation.frameWidth * monster.scale / 2)); // x,y of vector to center
     var difY = monster.targetY - (monster.y + (monster.animation.frameHeight * monster.scale / 2));
@@ -409,7 +409,7 @@ Zombie.prototype.draw = function (ctx) {
         this.width = this.animation.frameWidth * this.scale;
     }
 	
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 archerWalkRegistry = [];
@@ -427,8 +427,8 @@ function Archer(game, x, y) {
     this.x = x;
     this.y = y;
     this.target = game.buildingEntities[0];
-    this.targetX = this.target.buildX + (this.target.image.width * this.target.scale / 2);
-    this.targetY = this.target.buildY + (this.target.image.height * this.target.scale / 2);
+    this.targetX = this.target.x + (this.target.image.width * this.target.scale / 2);
+    this.targetY = this.target.y + (this.target.image.height * this.target.scale / 2);
     //calculate angle to target, 400,400 to center for now
     var difX = this.targetX - this.x; // x,y of vector to center
     var difY = this.targetY - this.y;
@@ -469,7 +469,7 @@ Archer.prototype.draw = function (ctx) {
         this.width = this.animation.frameWidth * this.scale;
     }
 
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 warriorWalkRegistry = [];
@@ -531,7 +531,7 @@ Warrior.prototype.draw = function (ctx) {
         this.width = this.animation.frameWidth * this.scale;
     }
 
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 dudeWalkRegistry = [];
@@ -593,7 +593,7 @@ Berserker.prototype.draw = function (ctx) {
         this.width = this.animation.frameWidth * this.scale;
     }
 
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 //BUILDINGS
@@ -604,10 +604,7 @@ function Castle(game) {
     
     this.image = ASSET_MANAGER.getAsset("./img/castle.png");
 
-    this.buildX = 400 - (this.image.width / 2 * this.scale);
-    this.buildY = 400 - (this.image.height / 2 * this.scale);
-
-    Entity.call(this, game, this.x, this.y);
+    Entity.call(this, game, 400 - (this.image.width / 2 * this.scale), 400 - (this.image.width / 2 * this.scale));
 }
 
 Castle.prototype = new Entity();
@@ -618,7 +615,7 @@ Castle.prototype.update = function () {
 }
 
 Castle.prototype.draw = function () {
-    this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
+    this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
 }
 
 function Tower(game) {  
@@ -675,8 +672,6 @@ Tower.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
-		this.buildX = this.x;
-		this.buildY = this.y;
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
@@ -694,7 +689,7 @@ Tower.prototype.draw = function () {
     
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 function Cannon(game) {
@@ -746,8 +741,6 @@ Cannon.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
         this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
         this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
-		this.buildX = this.x;
-		this.buildY = this.y;
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
@@ -764,7 +757,7 @@ Cannon.prototype.draw = function () {
     
     if (this.game.click && !this.game.mouse) this.placed = true;
 
-    Entity.prototype.draw.call(this);
+    Entity.prototype.drawHealth.call(this);
 }
 
 //ATTACKS
@@ -1035,7 +1028,7 @@ function Music() {
 
 //function to check the current time of the music and to set it the end once the music is within 7 seconds of finishing
 Music.prototype.checkDuration = function () {
-    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? 0 : this.music.currentTime;
+    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? 3 : this.music.currentTime;
 }
 
 Music.prototype.mute = function() {
