@@ -598,9 +598,42 @@ Berserker.prototype.draw = function (ctx) {
 
 //BUILDINGS
 
+//Helper method for Archer Towers and Castle to find the closest enemy to attack
+function attackClosestMonster(building) {
+    var length = building.game.monsterEntities.length;
+
+    building.attackTimer--;
+
+    var closestTarget = { index: null, distance: building.range + 1 };
+
+    for (var i = 0; i < length && building.attackTimer <= 0; i++) {
+        var dx = building.x + (building.image.width * building.scale / 2) - (building.game.monsterEntities[i].x + (building.game.monsterEntities[i].animation.frameWidth * building.game.monsterEntities[i].scale / 2));
+        var dy = building.y + (building.image.height * building.scale / 2) - (building.game.monsterEntities[i].y + (building.game.monsterEntities[i].animation.frameHeight * building.game.monsterEntities[i].scale / 2));
+
+        var distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= building.range && distance < closestTarget.distance) {
+            closestTarget.index = i;
+            closestTarget.distance = distance;
+        }
+    }
+
+    if (closestTarget.index || closestTarget.index === 0) {
+        var targetLoc = {};
+        targetLoc.x = building.game.monsterEntities[closestTarget.index].x + (building.game.monsterEntities[closestTarget.index].animation.frameWidth * building.game.monsterEntities[closestTarget.index].scale / 2);
+        targetLoc.y = building.game.monsterEntities[closestTarget.index].y + (building.game.monsterEntities[closestTarget.index].animation.frameHeight * building.game.monsterEntities[closestTarget.index].scale / 2);
+        building.game.addTopEntity(new ArrowAttack(building.game, building.x + 20, building.y + 40, targetLoc.x, targetLoc.y, building.game.monsterEntities[closestTarget.index]));
+    }
+
+    if (building.attackTimer <= 0) building.attackTimer = building.maxAttackTimer;
+}
+
 function Castle(game) {
     this.health = 100;
     this.scale = 1.25;
+    this.range = 150;
+    this.maxAttackTimer = 180;
+    this.attackTimer = this.maxAttackTimer;
     
     this.image = ASSET_MANAGER.getAsset("./img/castle.png");
 
@@ -612,10 +645,22 @@ Castle.prototype.constructor = Castle;
 
 Castle.prototype.update = function () {
     this.game.castleHealth = this.health;
+    attackClosestMonster(this);
 }
 
 Castle.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
+
+    if (displayRadius) {
+        this.game.ctx.beginPath();
+        this.game.ctx.save();
+        this.game.ctx.globalAlpha = .3;
+        this.game.ctx.strokeStyle = "white";
+        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
+        this.game.ctx.stroke();
+        this.game.ctx.closePath();
+        this.game.ctx.restore();
+    }
 }
 
 function Tower(game) {  
@@ -624,7 +669,8 @@ function Tower(game) {
     this.health = this.maxHealth;
     this.placed = false;
     this.range = 200;
-    this.attackTimer = 90;
+    this.maxAttackTimer = 90;
+    this.attackTimer = this.maxAttackTimer;
 
     this.image = ASSET_MANAGER.getAsset("./img/tower.png");
     this.width = this.image.width * this.scale;
@@ -636,31 +682,7 @@ Tower.prototype.constructor = Tower;
 
 Tower.prototype.update = function () {
     if (this.placed && !this.game.gameOver) {
-        var length = this.game.monsterEntities.length;
-        this.attackTimer--;
-
-        var closestTarget = { index: null, distance: this.range + 1 };
-
-        for (var i = 0; i < length && this.attackTimer <= 0; i++) {
-            var dx = this.x + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
-            var dy = this.y + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
-            
-            var distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance <= this.range && distance < closestTarget.distance) {
-                closestTarget.index = i;
-                closestTarget.distance = distance;
-            }
-        }
-
-        if (closestTarget.index || closestTarget.index === 0) {
-            var targetLoc = {};
-            targetLoc.x = this.game.monsterEntities[closestTarget.index].x + (this.game.monsterEntities[closestTarget.index].animation.frameWidth * this.game.monsterEntities[closestTarget.index].scale / 2);
-            targetLoc.y = this.game.monsterEntities[closestTarget.index].y + (this.game.monsterEntities[closestTarget.index].animation.frameHeight * this.game.monsterEntities[closestTarget.index].scale / 2);
-            this.game.addTopEntity(new ArrowAttack(this.game, this.x + 20, this.y + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[closestTarget.index]));
-        }
-
-        if (this.attackTimer === 0) this.attackTimer = 90;
+        attackClosestMonster(this);
     }
     
     if (this.health <= 0) {
@@ -681,7 +703,7 @@ Tower.prototype.draw = function () {
         this.game.ctx.save();
         this.game.ctx.globalAlpha = .3;
         this.game.ctx.strokeStyle = "white";
-        this.game.ctx.arc(this.x + this.image.width / 2, this.y + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
         this.game.ctx.stroke();
         this.game.ctx.closePath();
         this.game.ctx.restore();
@@ -696,7 +718,8 @@ function Cannon(game) {
     this.scale = .8;
     this.placed = false;
     this.range = 300;
-    this.attackTimer = 180;
+    this.maxAttackTimer = 180;
+    this.attackTimer = this.maxAttackTimer;
     this.maxHealth = 25;
     this.health = this.maxHealth;
 
@@ -711,25 +734,31 @@ Cannon.prototype.constructor = Cannon;
 Cannon.prototype.update = function () {
     if (this.placed && !this.game.gameOver) {
         var length = this.game.monsterEntities.length;
-        var attacked = false;
         this.attackTimer--;
+        var possibleEnemies = [];
 
-        for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
+        for (var i = 0; i < length && this.attackTimer <= 0; i++) {
             var dx = this.x + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
             var dy = this.y + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
 
             var distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance <= this.range) {
-                attacked = true;
                 var targetLoc = {};
+                targetLoc.index = i;
                 targetLoc.x = this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2);
                 targetLoc.y = this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2);
-                this.game.addTopEntity(new CannonAttack(this.game, this.x + 20, this.y + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[i]));
+                possibleEnemies.push(targetLoc);
             }
         }
 
-        if (this.attackTimer === 0) this.attackTimer = 180;
+        if (possibleEnemies.length > 0) {
+            var randomTarget = Math.floor(Math.random() * possibleEnemies.length);
+            var target = possibleEnemies[randomTarget];
+            this.game.addTopEntity(new CannonAttack(this.game, this.x + 20, this.y + 40, target.x, target.y, this.game.monsterEntities[target.index]));
+        }
+
+        if (this.attackTimer === 0) this.attackTimer = this.maxAttackTimer;
     }
 
     if (this.health <= 0) {
@@ -749,7 +778,7 @@ Cannon.prototype.draw = function () {
         this.game.ctx.save();
         this.game.ctx.globalAlpha = .3;
         this.game.ctx.strokeStyle = "white";
-        this.game.ctx.arc(this.x + this.image.width / 2, this.y + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
         this.game.ctx.stroke();
         this.game.ctx.closePath();
         this.game.ctx.restore();
