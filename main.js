@@ -182,7 +182,7 @@ clickExplode.prototype.constructor = clickExplode;
 
 clickExplode.prototype.draw = function(ctx) {
 	this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, .9);
-    Entity.prototype.draw.call(this);
+    //Entity.prototype.draw.call(this);
 }
 
 clickExplode.prototype.update = function() {
@@ -194,16 +194,11 @@ clickExplode.prototype.update = function() {
 	if(this.animation.isDone()) this.removeFromWorld = true;
 }
 
+//boolean to denote whether the range of towers/castle is displayed
 var displayRadius = true;
 
-var zScale = .4;
 globalAngleTolerance = 3;	//angle limit which entities will look the same in degrees
 //in order to add registries to a entity:
-//1. add specific global registries for each animation as empty arrays outside the constructor
-//2. pass the specific global registry(s) to the animation(s) in the constructor
-//3. add logic for adding to the registries when the entities are destroyed or complete.
-zombieWalkRegistry = [];
-zombieAttackRegistry = [];
 
 //global method for determining whether an animation should be added to a registry
 //returns index of acceptable animation or -1 if there is none, given
@@ -218,6 +213,89 @@ scanRegistry = function(angle, angleTolerance, registry) {
 	return -1;
 }
 
+//Method to manage monster's behavior each update cycle
+function monsterUpdateBehavior(monster, walkRegistry, attackRegistry) {
+    //get name of the monster
+    var name = monster.constructor.name;
+
+    //user clicked on the screen
+    if (monster.game.click && !monster.game.gameOver) {
+        //calculate the difference in x and y of the click to this entity's x/y
+        var diffx = Math.abs(monster.game.click.layerX - (monster.x + (64 * monster.scale)));
+        var diffy = Math.abs(monster.game.click.layerY - (monster.y + (64 * monster.scale)));
+
+        //see if the difference is within a certain range
+        if (diffx <= (70 * monster.scale) && diffy <= (70 * monster.scale) || monster.game.click.shiftKey) {
+            //decrement health
+            monster.health--;
+            monster.game.addTopEntity(new clickExplode(monster.game));
+            //add new message entity to the game
+            //if (monster.health > 0) {
+            //    monster.game.addTopEntity(new Message(monster.game, "Health: " + monster.health + "/" + monster.maxHealth, monster.game.click.layerX - (monster.game.ctx.measureText("Health: " + monster.health + "/" + monster.maxHealth).width / 2), monster.game.click.layerY - 25, null, true));
+            //}
+        }
+    }
+
+    //monster is dead
+    if (monster.health <= 0) {
+        //update the scoreboard to reflect the coin increase
+        monster.game.scoreBoard.updateScore(monster.coinWorth);
+        //show a new message to notify user of coin-worth
+        monster.game.addTopEntity(new Message(monster.game, "+" + monster.coinWorth + " Coins", monster.x, monster.y - (monster.animation.frameWidth * monster.scale / 2), null, true));
+        monster.removeFromWorld = true;
+        //increase the log of this particular monster killed
+        if (name === "Zombie") {
+            monster.game.monstersKilled.Zombies++;
+        } else if (name === "Archer") {
+            monster.game.monstersKilled.Archers++;
+        } else if (name === "Warrior") {
+            monster.game.monstersKilled.Warriors++;
+        } else {
+            monster.game.monstersKilled.Berserkers++;
+        }
+        
+        //add animations to respective registries if there is space and the animation is completely cached
+        if (monster.animation.completeCache() && scanRegistry(monster.angle, globalAngleTolerance, walkRegistry) === -1) {
+            walkRegistry.push(monster.animation);
+        }
+        if (monster.attackingAnimation.completeCache() && scanRegistry(monster.angle, globalAngleTolerance, attackRegistry) === -1) {
+            attackRegistry.push(monster.attackingAnimation);
+        }
+    }
+
+    //if/else to manage attack animation reset and movement of monster
+    if (monster.attacking) {
+        //if monster is not an archer, play attack sound
+        if (name !== "Archer") new AttackSound(monster.game);
+        monster.attackTimer--;
+        //attacking animation reset
+        if (monster.attackingAnimation.isDone()) {
+            monster.attackingAnimation.elapsedTime = 0;
+            monster.animation.elapsedTime = 0;
+        }
+        //monster is ready to deal its damage
+        if (monster.attackTimer === 0) {
+            //if not an Archer just apply damage directly
+            if (name !== "Archer") {
+                monster.target.health -= monster.damage;
+            } else { //is Archer so fire a new arrow
+                monster.game.addTopEntity(new ArrowAttack(monster.game, monster.x + (monster.attackingAnimation.frameWidth * monster.scale / 2), monster.y + (monster.attackingAnimation.frameHeight * monster.scale / 2), 400, 400));
+            }
+            //reset timer
+            monster.attackTimer = monster.defaultAttackTimer;
+        }
+    } else { //check and update the range of the monster towards it's target
+        if (monster.toCollide > monster.range) { //not yet reached it's attack range
+            monster.y += monster.unitY * monster.speed;
+            monster.x += monster.unitX * monster.speed;
+            monster.toCollide--;
+        } else { //is in range, attack
+            monster.attacking = true;
+        }
+    }
+}
+
+//Method for finding the closest target for necessary monsters
 function findTarget(monster, game) {
     var target = {index: null, distance: null};
 
@@ -257,14 +335,23 @@ function findTarget(monster, game) {
     monster.toCollide = (monster.magnitude) / monster.speed;//steps to hit castle
 }
 
+//MONSTERS
+
+//1. add specific global registries for each animation as empty arrays outside the constructor
+//2. pass the specific global registry(s) to the animation(s) in the constructor
+//3. add logic for adding to the registries when the entities are destroyed or complete.
+zombieWalkRegistry = [];
+zombieAttackRegistry = [];
+
 function Zombie(game, x, y) {    
     this.attacking = false;
     this.scale = .4;
     this.radius = 100;
 	this.maxHealth = 2;
 	this.health = this.maxHealth;
-	this.attackTimer = 90;
-	this.coinWorth = 20;
+	this.defaultAttackTimer = 90;
+	this.attackTimer = this.defaultAttackTimer;
+	this.coinWorth = 50;
 	this.damage = 1;
 	this.x = x;
 	this.y = y;
@@ -301,60 +388,7 @@ Zombie.prototype = new Entity();
 Zombie.prototype.constructor = Zombie;
 
 Zombie.prototype.update = function () {
-	//user clicked on the screen
-	if (this.game.click && !this.game.gameOver) { 		
-		//calculate the difference in x and y of the click to this entity's x/y
-	    var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
-	    var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
-		
-		//see if the difference is within a certain range
-	    if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
-			//decrement health
-	        this.health--;
-	        this.game.addTopEntity(new clickExplode(this.game));
-			//add new message entity to the game
-			if (this.health > 0){
-			    this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
-			}
-		}
-	}
-
-	if (this.health <= 0) {
-	    this.game.scoreBoard.updateScore(this.coinWorth);
-	    this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
-	    this.removeFromWorld = true;
-	    this.game.monstersKilled.zombies++;
-		//add animations to respective registries if there is space and the animation is completely cached
-		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieWalkRegistry) === -1) {
-			zombieWalkRegistry.push(this.animation);
-		}
-		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, zombieAttackRegistry) === -1) {
-			zombieAttackRegistry.push(this.attackingAnimation);
-		}
-	}
-	
-	//if/else to manage attack animation reset and movement of zombie
-	if (this.attacking) {
-	    new AttackSound(this.game);
-		this.attackTimer--;
-        if (this.attackingAnimation.isDone()) {
-            this.attackingAnimation.elapsedTime = 0;
-            this.animation.elapsedTime = 0;
-        }
-		if (this.attackTimer === 0) {
-		    this.target.health -= this.damage;
-			this.attackTimer = 90;
-		}
-    } else {
-        if (this.toCollide > this.range) {
-		    this.y += this.unitY * this.speed;
-		    this.x += this.unitX * this.speed;
-		    this.toCollide--;
-		    
-        } else {
-            this.attacking = true;
-        }
-	}
+    monsterUpdateBehavior(this, zombieWalkRegistry, zombieAttackRegistry);
 
 	if (this.target.health <= 0 || !this.target) {
 	    findTarget(this, this.game);
@@ -369,8 +403,10 @@ Zombie.prototype.update = function () {
 Zombie.prototype.draw = function (ctx) {
     if (this.attacking) {
         this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.animation.frameWidth * this.scale;
     }
 	
     Entity.prototype.draw.call(this);
@@ -385,8 +421,9 @@ function Archer(game, x, y) {
     this.radius = 100;
     this.maxHealth = 5;
     this.health = this.maxHealth;
-    this.attackTimer = 80;
-    this.coinWorth = 40;
+    this.defaultAttackTimer = 80;
+    this.attackTimer = this.defaultAttackTimer;
+    this.coinWorth = 100;
     this.x = x;
     this.y = y;
     this.target = game.buildingEntities[0];
@@ -418,60 +455,7 @@ Archer.prototype = new Entity();
 Archer.prototype.constructor = Archer;
 
 Archer.prototype.update = function () {
-   //user clicked on the screen
-    if (this.game.click && !this.game.gameOver) {
-        //calculate the difference in x and y of the click to this entity's x/y
-        var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
-        var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
-
-        //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
-            //decrement health
-            this.health--;
-            this.game.addTopEntity(new clickExplode(this.game));
-            //add new message entity to the game
-            if (this.health > 0) {
-				this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + 
-							this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
-				
-			}
-        }
-    }
-
-    if (this.health <= 0) {
-        this.game.scoreBoard.updateScore(this.coinWorth);
-        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
-        this.removeFromWorld = true;
-        this.game.monstersKilled.archers++;
-		
-		if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerWalkRegistry) === -1) {
-			archerWalkRegistry.push(this.animation);
-		}
-		if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, archerAttackRegistry) === -1) {
-			archerAttackRegistry.push(this.attackingAnimation);
-		}
-    }
-
-    //if/else to manage attack animation reset and movement of monster
-    if (this.attacking) {
-        this.attackTimer--;
-         if (this.attackingAnimation.isDone()) {
-            this.attackingAnimation.elapsedTime = 0;
-            this.animation.elapsedTime = 0;
-         }
-         if (this.attackTimer === 0) {
-            this.game.addTopEntity(new ArrowAttack(this.game, this.x + (this.attackingAnimation.frameWidth * this.scale / 2), this.y + (this.attackingAnimation.frameHeight * this.scale / 2), 400, 400));
-            this.attackTimer = 60;
-         }
-        } else {
-            if (this.toCollide > this.range) {
-            this.y += this.unitY * this.speed;
-            this.x += this.unitX * this.speed;
-            this.toCollide--;
-        } else {
-            this.attacking = true;
-        }
-    }
+    monsterUpdateBehavior(this, archerWalkRegistry, archerAttackRegistry);
 
     Entity.prototype.update.call(this);
 }
@@ -479,8 +463,10 @@ Archer.prototype.update = function () {
 Archer.prototype.draw = function (ctx) {
     if (this.attacking) {
         this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.animation.frameWidth * this.scale;
     }
 
     Entity.prototype.draw.call(this);
@@ -495,8 +481,9 @@ function Warrior(game, x, y) {
     this.radius = 100;
     this.maxHealth = 10;
     this.health = this.maxHealth;
-    this.attackTimer = 50;
-    this.coinWorth = 75;
+    this.defaultAttackTimer = 50;
+    this.attackTimer = this.defaultAttackTimer;
+    this.coinWorth = 150;
     this.damage = 1;
     this.x = x;
     this.y = y;
@@ -523,61 +510,7 @@ Warrior.prototype = new Entity();
 Warrior.prototype.constructor = Warrior;
 
 Warrior.prototype.update = function () {
-    //user clicked on the screen
-    if (this.game.click && !this.game.gameOver) {
-        //calculate the difference in x and y of the click to this entity's x/y
-        var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
-        var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
-
-        //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
-            //decrement health
-            this.health--;
-            this.game.addTopEntity(new clickExplode(this.game));
-            //add new message entity to the game
-            if (this.health > 0) {
-                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
-            }
-        }
-    }
-
-    if (this.health <= 0) {
-        this.game.scoreBoard.updateScore(this.coinWorth);
-        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
-        this.removeFromWorld = true;
-        this.game.monstersKilled.warriors++;
-
-        //add animations to respective registries if there is space and the animation is completely cached
-        if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorWalkRegistry) === -1) {
-            warriorWalkRegistry.push(this.animation);
-        }
-        if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, warriorAttackRegistry) === -1) {
-            warriorAttackRegistry.push(this.attackingAnimation);
-        }
-    }
-
-    //if/else to manage attack animation reset and movement of monster
-    if (this.attacking) {
-        new AttackSound(this.game);
-        this.attackTimer--;
-        if (this.attackingAnimation.isDone()) {
-            this.attackingAnimation.elapsedTime = 0;
-            this.animation.elapsedTime = 0;
-        }
-        if (this.attackTimer === 0) {
-            this.target.health -= this.damage;
-            this.attackTimer = 90;
-        }
-    } else {
-        if (this.toCollide > this.range) {
-            this.y += this.unitY * this.speed;
-            this.x += this.unitX * this.speed;
-            this.toCollide--;
-
-        } else {
-            this.attacking = true;
-        }
-    }
+    monsterUpdateBehavior(this, warriorWalkRegistry, warriorAttackRegistry);
 
     if (this.target.health <= 0 || !this.target) {
         findTarget(this, this.game);
@@ -591,9 +524,11 @@ Warrior.prototype.update = function () {
 
 Warrior.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 25, this.y - 25, this.scale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.animation.frameWidth * this.scale;
     }
 
     Entity.prototype.draw.call(this);
@@ -609,8 +544,9 @@ function Berserker(game, x, y) {
     this.radius = 100;
     this.maxHealth = 40;
     this.health = this.maxHealth;
-    this.attackTimer = 50;
-    this.coinWorth = 200;
+    this.defaultAttackTimer = 50;
+    this.attackTimer = this.defaultAttackTimer;
+    this.coinWorth = 400;
     this.damage = 5;
     this.x = x;
     this.y = y;
@@ -636,61 +572,7 @@ Berserker.prototype = new Entity();
 Berserker.prototype.constructor = Berserker;
 
 Berserker.prototype.update = function () {
-    //user clicked on the screen
-    if (this.game.click && !this.game.gameOver) {
-        //calculate the difference in x and y of the click to this entity's x/y
-        var diffx = Math.abs(this.game.click.layerX - (this.x + (64 * this.scale)));
-        var diffy = Math.abs(this.game.click.layerY - (this.y + (64 * this.scale)));
-
-        //see if the difference is within a certain range
-        if (diffx <= (70 * this.scale) && diffy <= (70 * this.scale) || this.game.click.shiftKey) {
-            //decrement health
-            this.health--;
-            this.game.addTopEntity(new clickExplode(this.game));
-            //add new message entity to the game
-            if (this.health > 0) {
-                this.game.addTopEntity(new Message(this.game, "Health: " + this.health + "/" + this.maxHealth, this.game.click.layerX - (this.game.ctx.measureText("Health: " + this.health + "/" + this.maxHealth).width / 2), this.game.click.layerY - 25, null, true));
-            }
-        }
-    }
-
-    if (this.health <= 0) {
-        this.game.scoreBoard.updateScore(this.coinWorth);
-        this.game.addTopEntity(new Message(this.game, "+" + this.coinWorth + " Coins", this.x, this.y - (this.animation.frameWidth * this.scale / 2), null, true));
-        this.removeFromWorld = true;
-        this.game.monstersKilled.berserkers++;
-
-        //add animations to respective registries if there is space and the animation is completely cached
-        if (this.animation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, dudeWalkRegistry) === -1) {
-            dudeWalkRegistry.push(this.animation);
-        }
-        if (this.attackingAnimation.completeCache() && scanRegistry(this.angle, globalAngleTolerance, dudeAttackRegistry) === -1) {
-            dudeAttackRegistry.push(this.attackingAnimation);
-        }
-    }
-
-    //if/else to manage attack animation reset and movement of monster
-    if (this.attacking) {
-        new AttackSound(this.game);
-        this.attackTimer--;
-        if (this.attackingAnimation.isDone()) {
-            this.attackingAnimation.elapsedTime = 0;
-            this.animation.elapsedTime = 0;
-        }
-        if (this.attackTimer === 0) {
-            this.target.health -= this.damage;
-            this.attackTimer = 90;
-        }
-    } else {
-        if (this.toCollide > this.range) {
-            this.y += this.unitY * this.speed;
-            this.x += this.unitX * this.speed;
-            this.toCollide--;
-
-        } else {
-            this.attacking = true;
-        }
-    }
+    monsterUpdateBehavior(this, dudeWalkRegistry, dudeAttackRegistry);
 
     if (this.target.health <= 0 || !this.target) {
         findTarget(this, this.game);
@@ -704,68 +586,17 @@ Berserker.prototype.update = function () {
 
 Berserker.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 30, this.y - 30, this.scale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.width = this.animation.frameWidth * this.scale;
     }
 
     Entity.prototype.draw.call(this);
 }
 
-function ScoreBoard(game) {
-    this.score = 500;
-    this.lifetimeScore = 500;
-
-    this.soundOn = ASSET_MANAGER.getAsset("./img/soundon.png");
-    this.soundOff = ASSET_MANAGER.getAsset("./img/soundoff.png");
-
-	Entity.call(this, game, 180, 17);
-}
-
-ScoreBoard.prototype = new Entity();
-ScoreBoard.prototype.constructor = ScoreBoard;
-
-ScoreBoard.prototype.update = function () {
-    if (this.game.click) {
-        if (this.game.click.layerX >= 795 - this.soundOn.width * .5 && this.game.click.layerX <= 795 && this.game.click.layerY >= 2 && this.game.click.layerY <= 2 + this.soundOn.height * .5) {
-            this.game.music.mute();
-        }
-    }
-}
-
-ScoreBoard.prototype.updateScore = function (amount) {
-    this.score += amount;
-    if (amount > 0) this.lifetimeScore += amount;
-}
-
-ScoreBoard.prototype.draw = function () {
-    //display basic information in upper-left (coins/round/health)
-	this.game.ctx.font = "18px Verdana";
-	this.game.ctx.fillStyle = "rgba(255, 255, 255)";
-    this.game.ctx.fillText("BitCoins: " + this.score, 2, 17);
-	this.game.ctx.fillStyle = "black";
-	this.game.ctx.fillText("Round: " + this.game.round, 2, 34);
-	this.game.ctx.fillText("Enemies: " + this.game.monsterEntities.length, 2, 51);
-	this.game.ctx.fillStyle = "darkred";
-	this.game.ctx.fillText("Health: " + this.game.castleHealth + "/" + this.game.maxCastleHealth, 2, 68);
-
-    //display radius information in the upper-right
-    this.game.ctx.font = "bold 15px Verdana";
-    this.game.ctx.fillStyle = "black";
-    var labelWidth = this.game.ctx.measureText("Radius Display (r)").width;
-    this.game.ctx.fillText("Radius Display (r)", 790 - labelWidth - this.soundOn.width * .5, 16);
-    this.game.ctx.font = "15px Verdana";
-    this.game.ctx.fillStyle = displayRadius ? "green" : "red";
-    var text = displayRadius ? "On" : "Off";
-    this.game.ctx.fillText(text, 790 - (labelWidth / 2) - (this.game.ctx.measureText(text).width / 2) - this.soundOn.width * .5, 32);
-
-    //display sound/mute information
-    if (!this.game.music.isMute) {
-        this.game.ctx.drawImage(this.soundOn, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
-    } else {
-        this.game.ctx.drawImage(this.soundOff, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
-    }
-}
+//BUILDINGS
 
 function Castle(game) {
     this.health = 100;
@@ -792,15 +623,15 @@ Castle.prototype.draw = function () {
 
 function Tower(game) {  
     this.scale = .8;
-    this.health = 25;
+    this.maxHealth = 25;
+    this.health = this.maxHealth;
     this.placed = false;
-    //this.showRange = true;
     this.range = 200;
-    //this.damage = 1;
     this.attackTimer = 90;
 
     this.image = ASSET_MANAGER.getAsset("./img/tower.png");
-    Entity.call(this, game, 0, 0);
+    this.width = this.image.width * this.scale;
+    Entity.call(this, game, -400, -400);
 }
 
 Tower.prototype = new Entity();
@@ -814,8 +645,8 @@ Tower.prototype.update = function () {
         var closestTarget = { index: null, distance: this.range + 1 };
 
         for (var i = 0; i < length && this.attackTimer <= 0; i++) {
-            var dx = this.buildX + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
-            var dy = this.buildY + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
+            var dx = this.x + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
+            var dy = this.y + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
             
             var distance = Math.sqrt(dx * dx + dy * dy);
             
@@ -829,7 +660,7 @@ Tower.prototype.update = function () {
             var targetLoc = {};
             targetLoc.x = this.game.monsterEntities[closestTarget.index].x + (this.game.monsterEntities[closestTarget.index].animation.frameWidth * this.game.monsterEntities[closestTarget.index].scale / 2);
             targetLoc.y = this.game.monsterEntities[closestTarget.index].y + (this.game.monsterEntities[closestTarget.index].animation.frameHeight * this.game.monsterEntities[closestTarget.index].scale / 2);
-            this.game.addTopEntity(new ArrowAttack(this.game, this.buildX + 20, this.buildY + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[closestTarget.index]));
+            this.game.addTopEntity(new ArrowAttack(this.game, this.x + 20, this.y + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[closestTarget.index]));
         }
 
         if (this.attackTimer === 0) this.attackTimer = 90;
@@ -842,61 +673,39 @@ Tower.prototype.update = function () {
 
 Tower.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
-        this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
-        this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+        this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
+        this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
     }
-    if (this.buildY && this.buildX) {
-        this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
-        //draw radius for tower
-        if (displayRadius) {
-            this.game.ctx.beginPath();
-            this.game.ctx.save();
-            this.game.ctx.globalAlpha = .3;
-            this.game.ctx.strokeStyle = "white";
-            this.game.ctx.arc(this.buildX + this.image.width / 2, this.buildY + this.image.height / 2, this.range, 0, Math.PI * 2, false);
-            this.game.ctx.stroke();
-            this.game.ctx.closePath();
-            this.game.ctx.restore();
-        }        
-    }
-    if (this.game.click && !this.game.mouse) this.placed = true;
-
-    //draw health of tower
-    if (this.placed) {
+    
+    this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
+    //draw radius for tower
+    if (displayRadius) {
+        this.game.ctx.beginPath();
         this.game.ctx.save();
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "black";
-        this.game.ctx.fillRect(this.buildX - 1, this.buildY - 11, this.image.width * this.scale + 2, 10);
-        this.game.ctx.fill();
-        this.game.ctx.closePath();
-
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "red";
-        this.game.ctx.fillRect(this.buildX, this.buildY - 10, this.image.width * this.scale, 8);
-        this.game.ctx.fill();
-        this.game.ctx.closePath();
-
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "green";
-        var healthPercentage = this.image.width * this.scale * (this.health / 25);
-        this.game.ctx.fillRect(this.buildX, this.buildY - 10, healthPercentage, 8);
-        this.game.ctx.fill();
+        this.game.ctx.globalAlpha = .3;
+        this.game.ctx.strokeStyle = "white";
+        this.game.ctx.arc(this.x + this.image.width / 2, this.y + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+        this.game.ctx.stroke();
         this.game.ctx.closePath();
         this.game.ctx.restore();
-    }
+    }        
+    
+    if (this.game.click && !this.game.mouse) this.placed = true;
 
+    Entity.prototype.draw.call(this);
 }
 
 function Cannon(game) {
     this.scale = .8;
     this.placed = false;
-    //this.showRange = true;
     this.range = 300;
     this.attackTimer = 180;
-    this.health = 25;
+    this.maxHealth = 25;
+    this.health = this.maxHealth;
 
     this.image = ASSET_MANAGER.getAsset("./img/cannon.png");
-    Entity.call(this, game, 0, 0);
+    this.width = this.image.width * this.scale;
+    Entity.call(this, game, -400, -400);
 }
 
 Cannon.prototype = new Entity();
@@ -909,8 +718,8 @@ Cannon.prototype.update = function () {
         this.attackTimer--;
 
         for (var i = 0; i < length && !attacked && this.attackTimer <= 0; i++) {
-            var dx = this.buildX + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
-            var dy = this.buildY + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
+            var dx = this.x + (this.image.width * this.scale / 2) - (this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2));
+            var dy = this.y + (this.image.height * this.scale / 2) - (this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2));
 
             var distance = Math.sqrt(dx * dx + dy * dy);
             
@@ -919,7 +728,7 @@ Cannon.prototype.update = function () {
                 var targetLoc = {};
                 targetLoc.x = this.game.monsterEntities[i].x + (this.game.monsterEntities[i].animation.frameWidth * this.game.monsterEntities[i].scale / 2);
                 targetLoc.y = this.game.monsterEntities[i].y + (this.game.monsterEntities[i].animation.frameHeight * this.game.monsterEntities[i].scale / 2);
-                this.game.addTopEntity(new CannonAttack(this.game, this.buildX + 20, this.buildY + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[i]));
+                this.game.addTopEntity(new CannonAttack(this.game, this.x + 20, this.y + 40, targetLoc.x, targetLoc.y, this.game.monsterEntities[i]));
             }
         }
 
@@ -931,51 +740,30 @@ Cannon.prototype.update = function () {
     }
 }
 
-Cannon.prototype.draw = function () {
-    
+Cannon.prototype.draw = function () {    
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
-        this.buildX = this.game.mouse.layerX - (this.image.width * this.scale / 2);
-        this.buildY = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+        this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
+        this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
     }
-    if (this.buildY && this.buildX) {
-        this.game.ctx.drawImage(this.image, this.buildX, this.buildY, this.image.width * this.scale, this.image.height * this.scale);
-        if (displayRadius) {
-            this.game.ctx.beginPath();
-            this.game.ctx.save();
-            this.game.ctx.globalAlpha = .3;
-            this.game.ctx.strokeStyle = "white";
-            this.game.ctx.arc(this.buildX + this.image.width / 2, this.buildY + this.image.height / 2, this.range, 0, Math.PI * 2, false);
-            this.game.ctx.stroke();
-            this.game.ctx.closePath();
-            this.game.ctx.restore();
-        }        
-    }
-    if (this.game.click && !this.game.mouse) this.placed = true;
-
-    //draw health of cannon
-    if (this.placed) {
+    
+    this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
+    if (displayRadius) {
+        this.game.ctx.beginPath();
         this.game.ctx.save();
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "black";
-        this.game.ctx.fillRect(this.buildX - 1, this.buildY - 11, this.image.width * this.scale + 2, 10);
-        this.game.ctx.fill();
-        this.game.ctx.closePath();
-
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "red";
-        this.game.ctx.fillRect(this.buildX, this.buildY - 10, this.image.width * this.scale, 8);
-        this.game.ctx.fill();
-        this.game.ctx.closePath();
-
-        this.game.ctx.beginPath();
-        this.game.ctx.fillStyle = "green";
-        var healthPercentage = this.image.width * this.scale * (this.health / 25);
-        this.game.ctx.fillRect(this.buildX, this.buildY - 10, healthPercentage, 8);
-        this.game.ctx.fill();
+        this.game.ctx.globalAlpha = .3;
+        this.game.ctx.strokeStyle = "white";
+        this.game.ctx.arc(this.x + this.image.width / 2, this.y + this.image.height / 2, this.range, 0, Math.PI * 2, false);
+        this.game.ctx.stroke();
         this.game.ctx.closePath();
         this.game.ctx.restore();
-    }
+    }        
+    
+    if (this.game.click && !this.game.mouse) this.placed = true;
+
+    Entity.prototype.draw.call(this);
 }
+
+//ATTACKS
 
 function ArrowAttack(game, startx, starty, targetx, targety, enemy) {
     //var sound = ASSET_MANAGER.getAsset("./audio/arrow.mp3");
@@ -1098,6 +886,63 @@ CannonAttack.prototype.draw = function () {
     this.game.ctx.closePath();
 }
 
+//DISPLAYS
+
+function ScoreBoard(game) {
+    this.score = 500;
+    this.lifetimeScore = 500;
+
+    this.soundOn = ASSET_MANAGER.getAsset("./img/soundon.png");
+    this.soundOff = ASSET_MANAGER.getAsset("./img/soundoff.png");
+
+    Entity.call(this, game, 180, 17);
+}
+
+ScoreBoard.prototype = new Entity();
+ScoreBoard.prototype.constructor = ScoreBoard;
+
+ScoreBoard.prototype.update = function () {
+    if (this.game.click) {
+        if (this.game.click.layerX >= 795 - this.soundOn.width * .5 && this.game.click.layerX <= 795 && this.game.click.layerY >= 2 && this.game.click.layerY <= 2 + this.soundOn.height * .5) {
+            this.game.music.mute();
+        }
+    }
+}
+
+ScoreBoard.prototype.updateScore = function (amount) {
+    this.score += amount;
+    if (amount > 0) this.lifetimeScore += amount;
+}
+
+ScoreBoard.prototype.draw = function () {
+    //display basic information in upper-left (coins/round/health)
+    this.game.ctx.font = "18px Verdana";
+    this.game.ctx.fillStyle = "rgba(255, 255, 255)";
+    this.game.ctx.fillText("BitCoins: " + this.score, 2, 17);
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.fillText("Round: " + this.game.round, 2, 34);
+    this.game.ctx.fillText("Enemies: " + this.game.monsterEntities.length, 2, 51);
+    this.game.ctx.fillStyle = "darkred";
+    this.game.ctx.fillText("Health: " + this.game.castleHealth + "/" + this.game.maxCastleHealth, 2, 68);
+
+    //display radius information in the upper-right
+    this.game.ctx.font = "bold 15px Verdana";
+    this.game.ctx.fillStyle = "black";
+    var labelWidth = this.game.ctx.measureText("Radius Display (r)").width;
+    this.game.ctx.fillText("Radius Display (r)", 790 - labelWidth - this.soundOn.width * .5, 16);
+    this.game.ctx.font = "15px Verdana";
+    this.game.ctx.fillStyle = displayRadius ? "green" : "red";
+    var text = displayRadius ? "On" : "Off";
+    this.game.ctx.fillText(text, 790 - (labelWidth / 2) - (this.game.ctx.measureText(text).width / 2) - this.soundOn.width * .5, 32);
+
+    //display sound/mute information
+    if (!this.game.music.isMute) {
+        this.game.ctx.drawImage(this.soundOn, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
+    } else {
+        this.game.ctx.drawImage(this.soundOff, 795 - this.soundOn.width * .5, 2, this.soundOn.width * .5, this.soundOn.height * .5);
+    }
+}
+
 function Fog(game) {
     this.image = ASSET_MANAGER.getAsset("./img/fog.png");
     Entity.call(this, game, 0, 0);
@@ -1153,7 +998,8 @@ GameOverScreen.prototype.draw = function () {
     this.game.ctx.fillText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore, 400 - this.game.ctx.measureText("Lifetime BitCoins:  " + this.game.scoreBoard.lifetimeScore).width / 2, 350);
 
     //calculate total monsters killed
-    var totalmonsters = this.game.monstersKilled.zombies + this.game.monstersKilled.archers + this.game.monstersKilled.warriors + this.game.monstersKilled.berserkers;
+    var totalmonsters = this.game.monstersKilled.Zombies + this.game.monstersKilled.Archers + this.game.monstersKilled.Warriors + this.game.monstersKilled.Berserkers;
+    
     this.game.ctx.font = "Bold 25px Verdana";
 
     //display total enemies killed 
@@ -1161,12 +1007,14 @@ GameOverScreen.prototype.draw = function () {
     this.game.ctx.font = "20px Verdana";
 
     //display detailed enemy killed info
-    this.game.ctx.fillText("Zombies: " + this.game.monstersKilled.zombies, 400 - this.game.ctx.measureText("Zombies: " + this.game.monstersKilled.zombies).width / 2, 450);
-    this.game.ctx.fillText("Archers: " + this.game.monstersKilled.archers, 400 - this.game.ctx.measureText("Archers: " + this.game.monstersKilled.archers).width / 2, 475);
-    this.game.ctx.fillText("Warriors: " + this.game.monstersKilled.warriors, 400 - this.game.ctx.measureText("Warriors: " + this.game.monstersKilled.warriors).width / 2, 500);
-    this.game.ctx.fillText("Berserkers: " + this.game.monstersKilled.berserkers, 400 - this.game.ctx.measureText("Berserkers: " + this.game.monstersKilled.berserkers).width / 2, 525);
+    this.game.ctx.fillText("Zombies: " + this.game.monstersKilled.Zombies, 400 - this.game.ctx.measureText("Zombies: " + this.game.monstersKilled.Zombies).width / 2, 450);
+    this.game.ctx.fillText("Archers: " + this.game.monstersKilled.Archers, 400 - this.game.ctx.measureText("Archers: " + this.game.monstersKilled.Archers).width / 2, 475);
+    this.game.ctx.fillText("Warriors: " + this.game.monstersKilled.Warriors, 400 - this.game.ctx.measureText("Warriors: " + this.game.monstersKilled.Warriors).width / 2, 500);
+    this.game.ctx.fillText("Berserkers: " + this.game.monstersKilled.Berserkers, 400 - this.game.ctx.measureText("Berserkers: " + this.game.monstersKilled.Berserkers).width / 2, 525);
 
 }
+
+//SOUNDS
 
 function Music() {
     //music named "Dark Music - Nocturnus" by Adrian von Ziegler on YouTube
@@ -1204,7 +1052,7 @@ function AttackSound(game) {
     if (!game.music.isMute) sound.play();
 }
 
-// the "main" code begins here
+// STARTING CODE
 
 var ASSET_MANAGER = new AssetManager();
 
@@ -1235,8 +1083,6 @@ ASSET_MANAGER.queueAudioDownload("./audio/boom.wav");
 ASSET_MANAGER.queueAudioDownload("./audio/arrow.mp3");
 ASSET_MANAGER.queueAudioDownload("./audio/cannon.mp3");
 ASSET_MANAGER.queueAudioDownload("./audio/monsterattack.mp3");
-
-
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("Starting Prevail");

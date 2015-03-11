@@ -39,7 +39,7 @@ function GameEngine() {
     this.buildDuration = 30;
     this.intermission = false;
     this.intermissionCancel = false;
-    this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
+    this.monstersKilled = { Zombies: 0, Archers: 0, Warriors: 0, Berserkers: 0 };
     this.buildingsUp = { arrow: 0, cannon: 0 };
     this.gameOver = false;
     this.isBuilding = false;
@@ -108,7 +108,7 @@ GameEngine.prototype.restart = function (entity) {
     this.isBuilding = false;
     this.monsterEntities = [];
     this.topEntities = [];
-    this.monstersKilled = { zombies: 0, archers: 0, warriors: 0, berserkers: 0 };
+    this.monstersKilled = { Zombies: 0, Archers: 0, Warriors: 0, Berserkers: 0 };
     this.buildingsUp = { arrow: 0, cannon: 0 };
 
     var sb = new ScoreBoard(this);
@@ -434,14 +434,34 @@ function Entity(game, x, y) {
 Entity.prototype.update = function () {
 }
 
-Entity.prototype.draw = function (ctx) {
-    if (this.game.showOutlines && this.radius) {
-        this.game.ctx.beginPath();
-        this.game.ctx.strokeStyle = "green";
-        this.game.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        this.game.ctx.stroke();
-        this.game.ctx.closePath();
-    }
+Entity.prototype.draw = function (ctx, width) {
+    var barWidth = 40;
+    var barHeight = 6;
+
+    var startingSpot = this.x + (this.width / 2 - barWidth / 2);
+       
+    
+
+    this.game.ctx.save();
+    this.game.ctx.beginPath();
+    this.game.ctx.fillStyle = "black";
+    this.game.ctx.fillRect(startingSpot - 1, this.y - 6, barWidth + 2, barHeight + 2);
+    this.game.ctx.fill();
+    this.game.ctx.closePath();
+
+    this.game.ctx.beginPath();
+    this.game.ctx.fillStyle = "red";
+    this.game.ctx.fillRect(startingSpot, this.y - 5, barWidth, barHeight);
+    this.game.ctx.fill();
+    this.game.ctx.closePath();
+
+    this.game.ctx.beginPath();
+    this.game.ctx.fillStyle = "green";
+    var healthPercentage = barWidth * (this.health / this.maxHealth);
+    this.game.ctx.fillRect(startingSpot, this.y - 5, healthPercentage, barHeight);
+    this.game.ctx.fill();
+    this.game.ctx.closePath();
+    this.game.ctx.restore();
 }
 
 Entity.prototype.rotateAndCache = function (image, angle) {
