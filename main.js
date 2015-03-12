@@ -187,8 +187,8 @@ clickExplode.prototype.draw = function(ctx) {
 
 clickExplode.prototype.update = function() {
 	if(this.game.click != null) {
-		this.x = this.game.click.layerX - this.animation.frameWidth*.9/2;
-		this.y = this.game.click.layerY - this.animation.frameHeight*.9/2;
+		this.x = this.game.click.x - this.animation.frameWidth*.9/2;
+		this.y = this.game.click.y - this.animation.frameHeight*.9/2;
 		Entity.prototype.update.call(this);
 	}
 	if(this.animation.isDone()) this.removeFromWorld = true;
@@ -221,18 +221,14 @@ function monsterUpdateBehavior(monster, walkRegistry, attackRegistry) {
     //user clicked on the screen
     if (monster.game.click && !monster.game.gameOver) {
         //calculate the difference in x and y of the click to this entity's x/y
-        var diffx = Math.abs(monster.game.click.layerX - (monster.x + (64 * monster.scale)));
-        var diffy = Math.abs(monster.game.click.layerY - (monster.y + (64 * monster.scale)));
+        var diffx = Math.abs(monster.game.click.x - (monster.x + (64 * monster.scale)));
+        var diffy = Math.abs(monster.game.click.y - (monster.y + (64 * monster.scale)));
 
         //see if the difference is within a certain range
         if (diffx <= (70 * monster.scale) && diffy <= (70 * monster.scale) || monster.game.click.shiftKey) {
             //decrement health
             monster.health--;
             monster.game.addTopEntity(new clickExplode(monster.game));
-            //add new message entity to the game
-            //if (monster.health > 0) {
-            //    monster.game.addTopEntity(new Message(monster.game, "Health: " + monster.health + "/" + monster.maxHealth, monster.game.click.layerX - (monster.game.ctx.measureText("Health: " + monster.health + "/" + monster.maxHealth).width / 2), monster.game.click.layerY - 25, null, true));
-            //}
         }
     }
 
@@ -298,19 +294,21 @@ function monsterUpdateBehavior(monster, walkRegistry, attackRegistry) {
 //Method for finding the closest target for necessary monsters
 function findTarget(monster, game) {
     var target = {index: null, distance: null};
+    if (monster.constructor.name === "Archer") { //archer only attacks the castle
+        target.index = 0;
+    } else {//check all buildings to find the closest
+        for (var i = 0; i < game.buildingEntities.length; i++) {
+            var building = game.buildingEntities[i];
+            var dx = (monster.x + (monster.animation.frameWidth * monster.scale / 2)) - (building.x + (building.image.width * building.scale / 2));
+            var dy = (monster.y + (monster.animation.frameHeight * monster.scale / 2)) - (building.y + (building.image.width * building.scale / 2));
 
-    //check all buildings to find the closest
-    for (var i = 0; i < game.buildingEntities.length; i++) {
-        var building = game.buildingEntities[i];
-        var dx = (monster.x + (monster.animation.frameWidth * monster.scale / 2)) - (building.x + (building.image.width * building.scale / 2));
-        var dy = (monster.y + (monster.animation.frameHeight * monster.scale / 2)) - (building.y + (building.image.width * building.scale / 2));
+            var distance = Math.sqrt(dx * dx + dy * dy);
 
-        var distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (!target.index && target.index !== 0 || target.distance && target.distance > distance) {
-            target.index = i;
-            target.distance = distance;
-        } 
+            if (!target.index && target.index !== 0 || target.distance && target.distance > distance) {
+                target.index = i;
+                target.distance = distance;
+            } 
+        }
     }
 
     //set monster's target and target's X and Y coordinate
@@ -322,15 +320,23 @@ function findTarget(monster, game) {
     var difX = monster.targetX - (monster.x + (monster.animation.frameWidth * monster.scale / 2)); // x,y of vector to center
     var difY = monster.targetY - (monster.y + (monster.animation.frameHeight * monster.scale / 2));
     monster.magnitude = Math.sqrt(difX * difX + difY * difY);
-    monster.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
-    if (monster.y < monster.targetY) {
+
+    //calculate angle necessary for monster
+    monster.angle = -Math.atan2(difX, difY);
+    //alter angle based on monster type (different sprite sheet directions)
+    if (monster.constructor.name === "Archer") {
+       monster.angle += 3 * Math.PI / 2;
+    } else {
         monster.angle += Math.PI;
     }
+
     monster.unitX = difX / monster.magnitude; //x,y of unit vector to center
     monster.unitY = difY / monster.magnitude;
 
     //calculate range that monster attacks at
-    monster.range = ((Math.max(monster.target.image.width, monster.target.image.height)  / 2 * monster.target.scale) / monster.speed) + 25;
+    if (monster.constructor.name !== "Archer") {
+        monster.range = ((Math.max(monster.target.image.width, monster.target.image.height) / 2 * monster.target.scale) / monster.speed) + 25;
+    }
 
     monster.toCollide = (monster.magnitude) / monster.speed;//steps to hit castle
 }
@@ -426,23 +432,16 @@ function Archer(game, x, y) {
     this.coinWorth = 100;
     this.x = x;
     this.y = y;
-    this.target = game.buildingEntities[0];
-    this.targetX = this.target.x + (this.target.image.width * this.target.scale / 2);
-    this.targetY = this.target.y + (this.target.image.height * this.target.scale / 2);
-    //calculate angle to target, 400,400 to center for now
-    var difX = this.targetX - this.x; // x,y of vector to center
-    var difY = this.targetY - this.y;
-    var magnitude = Math.sqrt(difX * difX + difY * difY);
-    this.angle = 4 / 2 * Math.PI - Math.atan(difX / difY);
-    if (this.y < this.targetY) {
-        this.angle += Math.PI;
-    }
-    this.angle += Math.PI/2;
-    this.unitX = difX / magnitude; //x,y of unit vector to center
-    this.unitY = difY / magnitude;
+    
     this.speed = .25 * game.speedModifier; //speed to modify unit vector
+    this.angle = 0;
     this.range = 200 / this.speed;
-    this.toCollide = (magnitude) / this.speed;//steps to hit castle
+
+    //used twice to get the frame widths for better calculations, will be changed after findTarget call
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, archerWalkRegistry);
+    this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/archerattack.png"), 0, 0, 127, 127, 0.1, 26, true, false, this.angle, archerAttackRegistry);
+
+    findTarget(this, game, this.speed);
 
     this.animation = new Animation(ASSET_MANAGER.getAsset("./img/archerwalk.png"), 0, 0, 127, 127, 0.05, 24, true, false, this.angle, archerWalkRegistry);
     this.attackingAnimation = new Animation(ASSET_MANAGER.getAsset("./img/archerattack.png"), 0, 0, 127, 127, 0.1, 26, true, false, this.angle, archerAttackRegistry);
@@ -524,7 +523,7 @@ Warrior.prototype.update = function () {
 
 Warrior.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 15, this.y - 10, this.scale);
         this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
@@ -586,7 +585,7 @@ Berserker.prototype.update = function () {
 
 Berserker.prototype.draw = function (ctx) {
     if (this.attacking) {
-        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        this.attackingAnimation.drawFrame(this.game.clockTick, ctx, this.x - 10, this.y - 10, this.scale);
         this.width = this.attackingAnimation.frameWidth * this.scale;
     } else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
@@ -628,6 +627,37 @@ function attackClosestMonster(building) {
     if (building.attackTimer <= 0) building.attackTimer = building.maxAttackTimer;
 }
 
+function drawBuildingRadius(building) {
+    if (displayRadius) {
+        building.game.ctx.beginPath();
+        building.game.ctx.save();
+        building.game.ctx.globalAlpha = .3;
+        building.game.ctx.strokeStyle = "white";
+        building.game.ctx.arc(building.x + building.image.width * building.scale / 2, building.y + building.image.height * building.scale / 2, building.range, 0, Math.PI * 2, false);
+        building.game.ctx.stroke();
+        building.game.ctx.closePath();
+        building.game.ctx.restore();
+    }
+}
+
+function checkBuildingPlacement(building) {
+    if (building.badPlacement) {
+        building.game.ctx.save();
+        building.game.ctx.strokeStyle = "red";
+        building.game.ctx.lineWidth = 3;
+        building.game.ctx.beginPath();
+        building.game.ctx.moveTo(building.x, building.y);
+        building.game.ctx.lineTo(building.x + building.image.width * building.scale, building.y + building.image.height * building.scale);
+        building.game.ctx.stroke();
+
+        building.game.ctx.beginPath();
+        building.game.ctx.moveTo(building.x, building.y + building.image.height * building.scale);
+        building.game.ctx.lineTo(building.x + building.image.width * building.scale, building.y);
+        building.game.ctx.stroke();
+        building.game.ctx.restore();
+    }
+}
+
 function Castle(game) {
     this.health = 100;
     this.scale = 1.25;
@@ -651,16 +681,7 @@ Castle.prototype.update = function () {
 Castle.prototype.draw = function () {
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
 
-    if (displayRadius) {
-        this.game.ctx.beginPath();
-        this.game.ctx.save();
-        this.game.ctx.globalAlpha = .3;
-        this.game.ctx.strokeStyle = "white";
-        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
-        this.game.ctx.stroke();
-        this.game.ctx.closePath();
-        this.game.ctx.restore();
-    }
+    drawBuildingRadius(this);
 }
 
 function Tower(game) {  
@@ -692,22 +713,16 @@ Tower.prototype.update = function () {
 
 Tower.prototype.draw = function () {
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
-        this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
-        this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+        this.x = this.game.mouse.x - (this.image.width * this.scale / 2);
+        this.y = this.game.mouse.y - (this.image.height * this.scale / 2);
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
+
     //draw radius for tower
-    if (displayRadius) {
-        this.game.ctx.beginPath();
-        this.game.ctx.save();
-        this.game.ctx.globalAlpha = .3;
-        this.game.ctx.strokeStyle = "white";
-        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
-        this.game.ctx.stroke();
-        this.game.ctx.closePath();
-        this.game.ctx.restore();
-    }        
+    drawBuildingRadius(this);
+
+    checkBuildingPlacement(this);
     
     if (this.game.click && !this.game.mouse) this.placed = true;
 
@@ -768,23 +783,17 @@ Cannon.prototype.update = function () {
 
 Cannon.prototype.draw = function () {    
     if (this.game.mouse && this.game.isBuilding && !this.placed) {
-        this.x = this.game.mouse.layerX - (this.image.width * this.scale / 2);
-        this.y = this.game.mouse.layerY - (this.image.height * this.scale / 2);
+        this.x = this.game.mouse.x - (this.image.width * this.scale / 2);
+        this.y = this.game.mouse.y - (this.image.height * this.scale / 2);
     }
     
     this.game.ctx.drawImage(this.image, this.x, this.y, this.image.width * this.scale, this.image.height * this.scale);
-    if (displayRadius) {
-        this.game.ctx.beginPath();
-        this.game.ctx.save();
-        this.game.ctx.globalAlpha = .3;
-        this.game.ctx.strokeStyle = "white";
-        this.game.ctx.arc(this.x + this.image.width * this.scale / 2, this.y + this.image.height * this.scale / 2, this.range, 0, Math.PI * 2, false);
-        this.game.ctx.stroke();
-        this.game.ctx.closePath();
-        this.game.ctx.restore();
-    }        
+
+    drawBuildingRadius(this);
     
     if (this.game.click && !this.game.mouse) this.placed = true;
+
+    checkBuildingPlacement(this);
 
     Entity.prototype.drawHealth.call(this);
 }
@@ -929,7 +938,7 @@ ScoreBoard.prototype.constructor = ScoreBoard;
 
 ScoreBoard.prototype.update = function () {
     if (this.game.click) {
-        if (this.game.click.layerX >= 795 - this.soundOn.width * .5 && this.game.click.layerX <= 795 && this.game.click.layerY >= 2 && this.game.click.layerY <= 2 + this.soundOn.height * .5) {
+        if (this.game.click.x >= 795 - this.soundOn.width * .5 && this.game.click.x <= 795 && this.game.click.y >= 2 && this.game.click.y <= 2 + this.soundOn.height * .5) {
             this.game.music.mute();
         }
     }
@@ -1057,7 +1066,7 @@ function Music() {
 
 //function to check the current time of the music and to set it the end once the music is within 7 seconds of finishing
 Music.prototype.checkDuration = function () {
-    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? 3 : this.music.currentTime;
+    this.music.currentTime = this.music.currentTime >= this.music.duration - 7 ? 1 : this.music.currentTime;
 }
 
 Music.prototype.mute = function() {

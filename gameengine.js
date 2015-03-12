@@ -120,8 +120,22 @@ GameEngine.prototype.startInput = function () {
     console.log('Starting input');
     var that = this;
 
+    function extractXandY(e) {
+        return {x: e.layerX, y: e.layerY, shiftKey: e.shiftKey};
+    }
+    
     this.ctx.canvas.addEventListener("keypress", function (e) {
         e.preventDefault();
+        //user hit 'space' to cancel building
+        if (e.keyCode === 32 && that.isBuilding) {
+            //remove the last entry in the building list
+            that.buildingEntities.splice(that.buildingEntities.length - 1, 1);
+            //replace building value
+            that.scoreBoard.updateScore(that.currentPrice);
+            that.isBuilding = false;
+            that.mouse = null;
+        }
+
         //user hit r to toggle radius display
         if (e.keyCode === 114 && that.gameStarted && !that.gameOver) {
             //if display radius is on, turn it off. If off, turn on.
@@ -132,81 +146,110 @@ GameEngine.prototype.startInput = function () {
         if (e.keyCode === 120 && that.intermission) {
             that.intermissionCancel = true;
         }
-        //user hit enter to start game
-        if (e.keyCode === 13 && !that.gameStarted) {
-            that.gameStarted = true;
-        } else if (e.keyCode === 13 && that.gameStarted && that.gameOver) {
-            that.restart();
-        }
-        //user hit 1 to restore health
-        if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
-            if (that.castleHealth < that.maxCastleHealth) {
-                that.scoreBoard.updateScore(-250);
-                that.buildingEntities[0].health = that.maxCastleHealth;
-            } else {
-                that.addTopEntity(new Message(that, "Already at full health", 335 - (that.ctx.measureText("Already at full health").width / 2), 550, "red", false, 2, "Bold 15pt"));
-            }
-        } else if (e.keyCode === 49 && that.intermission && that.scoreBoard.score < 250) {
-            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
-        }
 
-        //user hit 2 to increase max health
-        if (e.keyCode === 50 && that.intermission && that.scoreBoard.score >= 500) {
-            that.scoreBoard.updateScore(-500);
-            that.maxCastleHealth += 50;
-        } else if (e.keyCode === 50 && that.intermission && that.scoreBoard.score < 500) {
-            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
-        }
-
-        //Developer keypress '0' for stress-testing +10 levels and 50k coins (can be spammed)
+        //Developer keypress '0' for stress-testing 
         if (e.keyCode === 48) {
             that.monsterEntities = [];
             that.scoreBoard.updateScore(10000);
             that.round += 5;
         }
 
-        //user hit 3 to create archer tower
-        if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
-            that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
-            that.buildingsUp.arrow++;
-            that.scoreBoard.updateScore(-1000);
-            that.isBuilding = true;
-            that.addBuilding(new Tower(that));
-        } else if (e.keyCode === 51 && that.intermission && that.scoreBoard.score < 1000) {
-            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+        //user hit enter to start game
+        if (e.keyCode === 13 && !that.gameStarted) {
+            that.gameStarted = true;
+        } else if (e.keyCode === 13 && that.gameStarted && that.gameOver) {
+            that.restart();
         }
 
-        //user hit 4 to create a cannon tower 
-        if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
-            that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
-            that.buildingsUp.cannon++;
-            that.scoreBoard.updateScore(-1500);
-            that.isBuilding = true;
-            that.addBuilding(new Cannon(that));
-        } else if (e.keyCode === 52 && that.intermission && that.scoreBoard.score < 1500) {
-            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
-        }
+        if (!that.isBuilding) {
+            //user hit 1 to restore health
+            if (e.keyCode === 49 && that.intermission && that.scoreBoard.score >= 250) {
+                if (that.castleHealth < that.maxCastleHealth) {
+                    that.scoreBoard.updateScore(-250);
+                    that.buildingEntities[0].health = that.maxCastleHealth;
+                } else {
+                    that.addTopEntity(new Message(that, "Already at full health", 335 - (that.ctx.measureText("Already at full health").width / 2), 550, "red", false, 2, "Bold 15pt"));
+                }
+            } else if (e.keyCode === 49 && that.intermission && that.scoreBoard.score < 250) {
+                that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            }
 
-        //user hit 5 to add a bog
-        if (e.keyCode === 53 && that.intermission && that.speedModifier === 1 && that.scoreBoard.score >= 5000) {
-            that.scoreBoard.updateScore(-5000);
-            that.speedModifier = .75;
-        } else if (e.keyCode === 53 && that.intermission && that.speedModifier !== 1) {
-            that.addTopEntity(new Message(that, "Bog already purchased", 275, 550, "red", false, 2, "Bold 15pt"));
-        } else if (e.keyCode === 53 && that.intermission && that.scoreBoard.score < 5000) {
-            that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            //user hit 2 to increase max health
+            if (e.keyCode === 50 && that.intermission && that.scoreBoard.score >= 500) {
+                that.scoreBoard.updateScore(-500);
+                that.maxCastleHealth += 50;
+            } else if (e.keyCode === 50 && that.intermission && that.scoreBoard.score < 500) {
+                that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            }
+
+            //user hit 3 to create archer tower
+            if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
+                if (!that.isBuilding) {
+                    that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+                    that.buildingsUp.arrow++;
+                    that.currentPrice = 1000;
+                    that.scoreBoard.updateScore(-1000);
+                    that.isBuilding = true;
+                    that.addBuilding(new Tower(that));
+                } else {
+                    that.addTopEntity(new Message(that, "Building already in progress", 385 - (that.ctx.measureText("Building already in progress").width), 550, "red", false, 2, "Bold 15pt"));
+                }
+            } else if (e.keyCode === 51 && that.intermission && that.scoreBoard.score < 1000) {
+                that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            }
+
+            //user hit 4 to create a cannon tower 
+            if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
+                if (!that.isBuilding) {
+                    that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+                    that.buildingsUp.cannon++;
+                    that.currentPrice = 1500;
+                    that.scoreBoard.updateScore(-1500);
+                    that.isBuilding = true;
+                    that.addBuilding(new Cannon(that));
+                } else {
+                    that.addTopEntity(new Message(that, "Building already in progress", 385 - (that.ctx.measureText("Building already in progress").width), 550, "red", false, 2, "Bold 15pt"));
+                }
+            } else if (e.keyCode === 52 && that.intermission && that.scoreBoard.score < 1500) {
+                that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            }
+
+            //user hit 5 to add a bog
+            if (e.keyCode === 53 && that.intermission && that.speedModifier === 1 && that.scoreBoard.score >= 5000) {
+                that.scoreBoard.updateScore(-5000);
+                that.speedModifier = .75;
+            } else if (e.keyCode === 53 && that.intermission && that.speedModifier !== 1) {
+                that.addTopEntity(new Message(that, "Bog already purchased", 275, 550, "red", false, 2, "Bold 15pt"));
+            } else if (e.keyCode === 53 && that.intermission && that.scoreBoard.score < 5000) {
+                that.addTopEntity(new Message(that, "Not enough coins", 385 - (that.ctx.measureText("Not enough coins").width), 550, "red", false, 2, "Bold 15pt"));
+            }
         }
     }, false);
     
-
     this.ctx.canvas.addEventListener("mousemove", function (e) {
-        if (that.isBuilding) that.mouse = e;
+        if (that.isBuilding) {
+            that.canBuild = true;
+            var current = that.buildingEntities[that.buildingEntities.length - 1];
+            current.badPlacement = false;
+            var currentCoords = {x1: current.x, y1: current.y, x2: current.x + current.image.width * current.scale, y2: current.y + current.image.height * current.scale};
+            for (var i = 0; i < that.buildingEntities.length - 1; i++) {
+                var thisBuilding = that.buildingEntities[i];
+                var thisCoords = {x1: thisBuilding.x, y1: thisBuilding.y, x2: thisBuilding.x + thisBuilding.image.width * thisBuilding.scale, y2: thisBuilding.y + thisBuilding.image.height * thisBuilding.scale};
+                if (currentCoords.x1 < thisCoords.x2 && currentCoords.x2 > thisCoords.x1 && currentCoords.y1 < thisCoords.y2 && currentCoords.y2 > thisCoords.y1) {
+                    
+                    current.badPlacement = true;
+                    that.canBuild = false;
+                } 
+            }
+
+            that.mouse = extractXandY(e);
+        }
     }, false);
     
     this.ctx.canvas.addEventListener("click", function (e) {        
-        that.click = e;
+        that.click = extractXandY(e);
         that.scoreBoard.update();
-        if (that.isBuilding && that.mouse) {
+        if (that.isBuilding && that.mouse && that.canBuild) {
             that.isBuilding = false;
             that.mouse = null;
         }
@@ -354,12 +397,17 @@ GameEngine.prototype.checkRound = function () {
     if (this.monsterEntities.length === 0 && !this.gameOver && !this.intermission && this.round > 0) {
         this.intermission = true;
         this.startTime = Date.now();
-        this.barOffset = 0;
+        barOffset = 0;
     }
 
     if (this.intermission) {
-        this.barOffset = this.barOffset === 200 ? 200 : this.barOffset + 10;
-        this.ctx.drawImage(this.buildBar, 0, 800 - this.barOffset, this.buildBar.width, this.buildBar.height);
+        if (!this.isBuilding) {
+            barOffset = barOffset >= 200 ? 200 : barOffset + 12;
+            this.ctx.drawImage(this.buildBar, 0, 800 - barOffset, this.buildBar.width, this.buildBar.height);
+        } else {
+            barOffset = barOffset <= -200 ? -200 : barOffset - 12;
+            this.ctx.drawImage(this.buildBar, 0, 800 - barOffset, this.buildBar.width, this.buildBar.height);
+        }
         this.ctx.save();
         this.ctx.font = "bold 40px arial";
         this.ctx.fillStyle = "white";
@@ -368,6 +416,11 @@ GameEngine.prototype.checkRound = function () {
         this.ctx.font = "bold 60px arial";
         if (time >= this.buildDuration - 5) this.ctx.fillStyle = "red";
         this.ctx.fillText(this.buildDuration - time, 400 - this.ctx.measureText(this.buildDuration - time).width / 2, 175);
+
+        if (this.isBuilding) {
+            this.ctx.font = "bold 20px arial";
+            this.ctx.fillText("Press 'spacebar' to cancel", 400 - this.ctx.measureText("Press 'spacebar' to cancel").width / 2, 600);
+        }
         
         this.ctx.restore();
 
