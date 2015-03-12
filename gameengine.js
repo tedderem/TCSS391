@@ -1,6 +1,6 @@
 // This game shell was modified and adapted from Seth Ladd's "Bad Aliens" template
 
-var version = 'v1.2.0';
+var version = 'v1.2.1';
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -185,7 +185,7 @@ GameEngine.prototype.startInput = function () {
             //user hit 3 to create archer tower
             if (e.keyCode === 51 && that.intermission && that.scoreBoard.score >= 1000) {
                 if (!that.isBuilding) {
-                    that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+                   // that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
                     that.buildingsUp.arrow++;
                     that.currentPrice = 1000;
                     that.scoreBoard.updateScore(-1000);
@@ -201,7 +201,7 @@ GameEngine.prototype.startInput = function () {
             //user hit 4 to create a cannon tower 
             if (e.keyCode === 52 && that.intermission && that.scoreBoard.score >= 1500) {
                 if (!that.isBuilding) {
-                    that.addTopEntity(new Message(that, "Move your Mouse to place Tower", 225, 400, "white", false, 2, "Bold 15pt"));
+                    //that.addTopEntity(new Message(that, "Move your Mouse & Click to Build", 225, 400, "white", false, 2, "Bold 15pt"));
                     that.buildingsUp.cannon++;
                     that.currentPrice = 1500;
                     that.scoreBoard.updateScore(-1500);
@@ -418,6 +418,7 @@ GameEngine.prototype.checkRound = function () {
         this.ctx.fillText(this.buildDuration - time, 400 - this.ctx.measureText(this.buildDuration - time).width / 2, 175);
 
         if (this.isBuilding) {
+            this.ctx.fillStyle = "white";
             this.ctx.font = "bold 20px arial";
             this.ctx.fillText("Press 'spacebar' to cancel", 400 - this.ctx.measureText("Press 'spacebar' to cancel").width / 2, 600);
         }
