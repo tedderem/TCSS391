@@ -1,4 +1,6 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
+var socket = io.connect("http://76.28.150.193:8888");
+
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -43,6 +45,39 @@ function GameEngine() {
     this.wheel = null;
     this.surfaceWidth = null;
     this.surfaceHeight = null;
+
+    var that = this;
+
+    socket.on("load", function (data) {       
+        //that.creatureEntities = data.creatures;        
+        that.feedTimer = data.data.feedTimer;
+        that.creatureEntities = [];
+        for (var i = 0; i < data.data.creatures.length; i++) {
+            var oldCreature = data.data.creatures[i];
+
+            var creature = new Creature(that);
+
+            creature.color = oldCreature.color;
+            creature.radius = oldCreature.radius;
+            creature.speed = oldCreature.speed;
+            creature.timesEaten = oldCreature.timesEaten;
+            creature.x = oldCreature.x;
+            creature.y = oldCreature.y;
+            creature.starveTimer = oldCreature.starveTimer;
+            creature.sightRange = oldCreature.sightRange;
+            creature.velocity = oldCreature.velocity;
+
+
+            that.addCreature(creature);
+        }
+        //load the various data values for food eaten, deaths, and reproductions
+        that.foodEaten = data.data.foodEaten;
+        that.deaths = data.data.deaths;
+        that.reproductions = data.data.reproductions;
+
+        console.log("Game loaded");
+        console.log(data.data);
+    });
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -73,13 +108,55 @@ GameEngine.prototype.startInput = function () {
 		} else if (String.fromCharCode(e.which) === 'z') {
 			that.feedTimer--;
 			if (that.feedTimer < 10) that.feedTimer = 10;
-		}
+		} 
 		e.preventDefault();
-    }, false);
+	}, false);
+
+	function save() {
+	    var saveName = prompt("Enter a name to save this game");
+
+	    if (saveName) {
+	        console.log("Saving game with state name: " + saveName);
+
+	        var creatureInfo = [];
+	        //iterate through all creatures
+	        for (var i = 0; i < that.creatureEntities.length; i++) {
+	            var creature = {};
+	            //store all info from that creature
+	            creature.color = that.creatureEntities[i].color;
+	            creature.radius = that.creatureEntities[i].radius;
+	            creature.speed = that.creatureEntities[i].speed;
+	            creature.timesEaten = that.creatureEntities[i].timesEaten;
+	            creature.x = that.creatureEntities[i].x;
+	            creature.y = that.creatureEntities[i].y;
+	            creature.starveTimer = that.creatureEntities[i].starveTimer;
+	            creature.sightRange = that.creatureEntities[i].sightRange;
+	            creature.velocity = that.creatureEntities[i].velocity;
+
+	            creatureInfo.push(creature);
+	        }
+
+	        socket.emit('save', { studentname: "Erik Tedder", statename: "test", data: { creatures: creatureInfo, feedTimer: that.feedTimer, deaths: that.deaths, reproductions: that.reproductions, foodEaten: that.foodEaten } });
+	    }
+	}
+    
+	function load() {
+	    var loadName = prompt("Enter the name of the game to load");
+	    if (loadName) {
+	        console.log("Loading game with state name: " + loadName);
+	        socket.emit('load', { studentname: "Erik Tedder", statename: "test" });
+	    }
+	}
 
     this.ctx.canvas.addEventListener("click", function (e) {
-		e.preventDefault();
-        that.addFood(new Food(that, e.layerX, e.layerY));
+        e.preventDefault();
+        if (e.layerX > 750 && e.layerY > 0 && e.layerY < 15) {
+            save();
+        } else if (e.layerX > 750 && e.layerY > 15 && e.layerY < 35) {
+            load();
+        } else {
+            that.addFood(new Food(that, e.layerX, e.layerY));
+        }
     }, false);
 
     this.ctx.canvas.addEventListener("contextmenu", function (e) {
@@ -110,7 +187,8 @@ GameEngine.prototype.draw = function () {
         this.creatureEntities[i].draw(this.ctx);
     }
     this.ctx.restore();
-	
+
+	//display information about game
 	this.ctx.save();
 	this.ctx.fillStyle = "black";
 	this.ctx.font = "italic bold 15px Verdana";
@@ -125,6 +203,14 @@ GameEngine.prototype.draw = function () {
 	this.ctx.fillText("Timer: " + this.feedTimer, 660, 755);
 	this.ctx.fillText("Food in World: " + this.foodEntities.length, 660, 775);
 	this.ctx.fillText("Food Eaten: " + this.foodEaten, 660, 795);
+	this.ctx.restore();
+
+    //display save and load "buttons"
+	this.ctx.save();
+	this.ctx.fillStyle = "black";
+	this.ctx.font = "bold 15px Verdana";
+	this.ctx.fillText("Save", 750, 15);
+	this.ctx.fillText("Load", 750, 35);
 	this.ctx.restore();
 }
 
@@ -172,6 +258,9 @@ GameEngine.prototype.loop = function () {
     this.update();
     this.draw();
 }
+
+
+
 
 function Entity(game, x, y) {
     this.game = game;

@@ -1,4 +1,3 @@
-
 function distance(a, b) {
     var dx = a.x - b.x;
     var dy = a.y - b.y;
@@ -199,11 +198,11 @@ Creature.prototype.draw = function (ctx) {
 	}
 };
 
+
 function start() {
 	console.log("Beginning simulation");
 	var canvas = document.getElementById("world");
 	var ctx = canvas.getContext('2d');
-
 
 	var gameEngine = new GameEngine();
 	
@@ -216,5 +215,6 @@ function start() {
     gameEngine.init(ctx);
     gameEngine.start();
 }
+
 
 document.addEventListener("DOMContentLoaded", start, false);
