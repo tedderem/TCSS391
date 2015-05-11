@@ -1,7 +1,7 @@
 # PREVAIL
 
 JavaScript web game for UWT's TCSS 491 course Winter '15
-<br><br>Most up-to-date repo : <a href="https://github.com/tedderem/TCSS491/tree/gh-pages">gh-pages branch</a>
+<br>Most up-to-date repo : <a href="https://github.com/tedderem/TCSS491/tree/gh-pages">gh-pages branch</a>
 
 Hordes of undead swarm your castle and it is your job to fend them off. Click the monsters, collect coins, and build up your defenses! 
 
