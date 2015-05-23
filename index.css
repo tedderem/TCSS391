@@ -1,4 +1,10 @@
-Canvas{
+body {
+	background: linear-gradient(to left,black 90%, #4D0202 90%);
+}
+
+canvas {
+	position: relative;
+	top: -30px;
 	background:url(./img/background.png);
 	outline: none;
 	-webkit-touch-callout: none;
@@ -7,4 +13,57 @@ Canvas{
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-} ;
+	padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
+#title {
+	width: 800px;
+	margin: 0 auto;
+	position:relative;
+	top: -10px;
+}
+
+#cheats {
+	width: 800px;
+	margin: 0 auto;
+	position:relative;
+	top: -40px;
+}
+
+#title h1 {
+	font-weight:bold;
+	font-variant:small-caps;
+	color:#8F0000;
+	letter-spacing:10pt;
+	word-spacing:-1pt;
+	font-size:55px;
+	text-align:center;
+	font-family:arial black, sans-serif;
+	line-height:0;
+}
+
+#title p {
+	color: white;
+	position: relative;
+	font-style: italic;
+	top: -10px;
+	text-align: center;
+}
+
+#cheats h1 {
+	color: white;
+	text-align: center;
+	font-size: 150%;
+	bottom: -10px;
+}
+#cheats p {
+	color: white;
+	position: relative;
+	text-align: center;
+	top: -15px;
+}
+
