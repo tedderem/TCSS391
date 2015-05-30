@@ -1,5 +1,5 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
-var socket = io.connect("http://76.28.150.193:8888");
+//var socket = io.connect("http://76.28.150.193:8888");
 
 
 window.requestAnimFrame = (function () {
@@ -48,7 +48,7 @@ function GameEngine() {
 
     var that = this;
 
-    socket.on("load", function (data) {       
+ /*    socket.on("load", function (data) {       
         //that.creatureEntities = data.creatures;        
         that.feedTimer = data.data.feedTimer;
         that.creatureEntities = [];
@@ -77,7 +77,7 @@ function GameEngine() {
 
         console.log("Game loaded");
         console.log(data.data);
-    });
+    }); */
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -112,7 +112,7 @@ GameEngine.prototype.startInput = function () {
 		e.preventDefault();
 	}, false);
 
-	function save() {
+	/* function save() {
 	    var saveName = prompt("Enter a name to save this game");
 
 	    if (saveName) {
@@ -138,25 +138,25 @@ GameEngine.prototype.startInput = function () {
 
 	        socket.emit('save', { studentname: "Erik Tedder", statename: "test", data: { creatures: creatureInfo, feedTimer: that.feedTimer, deaths: that.deaths, reproductions: that.reproductions, foodEaten: that.foodEaten } });
 	    }
-	}
+	} */
     
-	function load() {
+	/* function load() {
 	    var loadName = prompt("Enter the name of the game to load");
 	    if (loadName) {
 	        console.log("Loading game with state name: " + loadName);
 	        socket.emit('load', { studentname: "Erik Tedder", statename: "test" });
 	    }
-	}
+	} */
 
     this.ctx.canvas.addEventListener("click", function (e) {
         e.preventDefault();
-        if (e.layerX > 750 && e.layerY > 0 && e.layerY < 15) {
+       /*  if (e.layerX > 750 && e.layerY > 0 && e.layerY < 15) {
             save();
         } else if (e.layerX > 750 && e.layerY > 15 && e.layerY < 35) {
             load();
-        } else {
+        } else { */
             that.addFood(new Food(that, e.layerX, e.layerY));
-        }
+       // }
     }, false);
 
     this.ctx.canvas.addEventListener("contextmenu", function (e) {
@@ -206,12 +206,12 @@ GameEngine.prototype.draw = function () {
 	this.ctx.restore();
 
     //display save and load "buttons"
-	this.ctx.save();
+	/* this.ctx.save();
 	this.ctx.fillStyle = "black";
 	this.ctx.font = "bold 15px Verdana";
 	this.ctx.fillText("Save", 750, 15);
 	this.ctx.fillText("Load", 750, 35);
-	this.ctx.restore();
+	this.ctx.restore(); */
 }
 
 GameEngine.prototype.update = function () {
